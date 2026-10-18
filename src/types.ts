@@ -1,16 +1,14 @@
 export type Category = 
-  | 'All'
-  | 'Text & Content'
-  | 'Code & Web Dev'
-  | 'Crypto & Security'
+  | 'Media & Studio'
+  | 'Text & Crypto Forge'
+  | 'Code & Web Lab'
+  | 'Files & Documents'
+  | 'Math & Engineering'
   | 'Unit Converters'
-  | 'Math & Science'
   | 'Finance & Money'
-  | 'Date & Time'
-  | 'Color & Design'
-  | 'Image & Media'
-  | 'Productivity'
-  | 'Cheatsheets';
+  | 'Date, Time & World'
+  | 'Color & Palette'
+  | 'Cheatsheets & Guides';
 
 export interface ToolItem {
   id: string;
@@ -23,6 +21,7 @@ export interface ToolItem {
   componentId: string;
   mode?: string;
   featured?: boolean;
+  badge?: 'New' | 'Popular' | 'AI / Canvas' | 'Privacy' | 'Pro';
 }
 
 export interface ToastMessage {
