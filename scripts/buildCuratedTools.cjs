@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const curatedTools = [
-  // 1. PHOTO & MEDIA (AUTOMATIC PHOTO PROCESSING)
+  // 1. PHOTO & MEDIA (AUTOMATIC PHOTO PROCESSING & STUDIO)
   {
     id: 'auto-photo-processor',
     name: 'Automatic Photo Processing Studio',
@@ -24,6 +24,17 @@ const curatedTools = [
     componentId: 'universal-file-converter',
     featured: true,
     badge: 'Popular'
+  },
+  {
+    id: 'audio-studio',
+    name: 'Audio Studio & Sound Tools',
+    category: 'Media & Studio',
+    description: 'Calming noise generator (Brown/Pink/White), Binaural brainwave focus beats, 432Hz Solfeggio tones, voice microphone recorder, and audio trimmer.',
+    tags: ['audio', 'sound', 'voice recorder', 'trimmer', 'cutter', 'binaural', 'tones', 'brown noise', 'pink noise', 'audio studio'],
+    icon: 'Waves',
+    componentId: 'audio-studio',
+    featured: true,
+    badge: 'New'
   },
   {
     id: 'video-downloader-helper',
@@ -300,7 +311,7 @@ const curatedTools = [
   // 4. FILES & DOCUMENTS
   {
     id: 'file-transformer',
-    name: 'Images to PDF & Document Sticher',
+    name: 'Images to PDF & Document Stitcher',
     category: 'Files & Documents',
     description: 'Compile multiple images into a clean single PDF, format text to PDF, and manage ZIP archives.',
     tags: ['file', 'pdf', 'images to pdf', 'zip', 'compress', 'archive'],
@@ -775,4 +786,4 @@ export const TOOLS_DATA: ToolItem[] = ${JSON.stringify(curatedTools, null, 2)};
 `;
 
 fs.writeFileSync(path.join(__dirname, '../src/data/toolsData.ts'), fileContent, 'utf-8');
-console.log(`Successfully generated ${curatedTools.length} curated powerhouse tools without Photoshop or audio junk!`);
+console.log(`Successfully generated ${curatedTools.length} curated tools with Audio Studio restored and Automatic Photo Studio!`);

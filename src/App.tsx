@@ -19,6 +19,7 @@ import { FileTransformer } from './tools/FileTransformer';
 import { VideoDownloaderHelper } from './tools/VideoDownloaderHelper';
 import { PrivacyVault } from './tools/PrivacyVault';
 import { ScreenRecorder } from './tools/ScreenRecorder';
+import { AudioStudio } from './tools/AudioStudio';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -229,6 +230,7 @@ export const App: React.FC = () => {
     if (id === 'video-downloader-helper') return <VideoDownloaderHelper />;
     if (id === 'screen-recorder') return <ScreenRecorder />;
     if (id === 'privacy-vault') return <PrivacyVault />;
+    if (id === 'audio-studio') return <AudioStudio />;
 
     // Cheatsheets
     if (activeTool.category === 'Cheatsheets & Guides' || id.startsWith('cheatsheet-')) {

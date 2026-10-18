@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       case 'stars': return '✨ Stars';
       case 'rain': return '🌧️ Rain';
       case 'fireflies': return '🌟 Fireflies';
-      case 'off': return '🚫 Peaceful FX Off';
+      case 'off': return '🚫 Visual FX Off';
     }
   };
 
