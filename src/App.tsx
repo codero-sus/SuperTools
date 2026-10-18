@@ -10,14 +10,13 @@ import { ToolHeader } from './components/ToolHeader';
 import { CheatsheetView } from './components/CheatsheetView';
 import { AmbientBackground, AmbientEffect } from './components/effects/AmbientBackground';
 
-// Core New Powerhouse Tools
-import { BackgroundRemover } from './tools/BackgroundRemover';
-import { PassportPhotoMaker } from './tools/PassportPhotoMaker';
+// Core Powerhouse Tools
+import { AutoPhotoProcessor } from './tools/AutoPhotoProcessor';
+import { UniversalFileConverter } from './tools/UniversalFileConverter';
 import { UnifiedTextForge } from './tools/UnifiedTextForge';
 import { OcrTool } from './tools/OcrTool';
 import { FileTransformer } from './tools/FileTransformer';
 import { VideoDownloaderHelper } from './tools/VideoDownloaderHelper';
-import { AudioStudio } from './tools/AudioStudio';
 import { PrivacyVault } from './tools/PrivacyVault';
 import { ScreenRecorder } from './tools/ScreenRecorder';
 
@@ -59,7 +58,7 @@ import { TimerTools } from './tools/TimerTools';
 import { ColorTools } from './tools/ColorTools';
 import { MediaTools } from './tools/MediaTools';
 
-import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, Star, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, Star, SlidersHorizontal, Wand2 } from 'lucide-react';
 
 const CATEGORIES: { id: string; name: string }[] = [
   { id: 'all', name: 'All Tools' },
@@ -104,7 +103,7 @@ export const App: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('supertools_favorites');
-      return saved ? JSON.parse(saved) : ['background-remover', 'passport-photo-maker', 'unified-text-forge', 'file-transformer', 'ocr-tool', 'video-downloader-helper'];
+      return saved ? JSON.parse(saved) : ['auto-photo-processor', 'universal-file-converter', 'unified-text-forge', 'ocr-tool', 'video-downloader-helper'];
     } catch {
       return [];
     }
@@ -222,14 +221,13 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
-    if (id === 'background-remover') return <BackgroundRemover />;
-    if (id === 'passport-photo-maker') return <PassportPhotoMaker />;
+    if (id === 'auto-photo-processor') return <AutoPhotoProcessor />;
+    if (id === 'universal-file-converter') return <UniversalFileConverter />;
     if (id === 'unified-text-forge') return <UnifiedTextForge />;
     if (id === 'ocr-tool') return <OcrTool />;
     if (id === 'file-transformer') return <FileTransformer />;
     if (id === 'video-downloader-helper') return <VideoDownloaderHelper />;
     if (id === 'screen-recorder') return <ScreenRecorder />;
-    if (id === 'audio-studio') return <AudioStudio />;
     if (id === 'privacy-vault') return <PrivacyVault />;
 
     // Cheatsheets
@@ -251,7 +249,6 @@ export const App: React.FC = () => {
     if (id === 'barcode-generator') return <BarcodeGenerator />;
     if (id === 'qr-scanner') return <QrScanner />;
     if (id === 'image-resizer') return <MediaTools mode="resizer" />;
-    if (id === 'image-filter-studio') return <MediaTools mode="filter" />;
     if (id === 'aspect-ratio-calc') return <MediaTools mode="aspect" />;
     if (id === 'screen-detector') return <MediaTools mode="screen" />;
 
@@ -318,7 +315,7 @@ export const App: React.FC = () => {
     }
 
     // Fallback default
-    return <UnifiedTextForge />;
+    return <AutoPhotoProcessor />;
   };
 
   return (
@@ -418,7 +415,7 @@ export const App: React.FC = () => {
                 </h1>
 
                 <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
-                  Fast, private, and beautifully designed developer and everyday studio. Background removal, passport photos, video grabber, 1337 text forge, OCR, file transformer, screen recording, and peaceful ambient sounds.
+                  Fast, private, and beautifully designed developer and everyday studio. Automatic photo enhancement, universal multi-format file converter (XLSX, CSV, PDF, WebP, ICO), 1337 text forge, OCR, video stream helper, and screen recorder.
                 </p>
 
                 {/* Instant Search Bar */}
@@ -471,7 +468,7 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Powerful Category & Badge Filter System */}
+            {/* Category & Badge Filter System */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
