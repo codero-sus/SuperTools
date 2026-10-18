@@ -44,6 +44,28 @@ export const TOOLS_DATA: ToolItem[] = [
     "badge": "Popular"
   },
   {
+    "id": "audio-studio",
+    "name": "Audio Studio & Sound Tools",
+    "category": "Media & Studio",
+    "description": "Calming noise generator (Brown/Pink/White), Binaural brainwave focus beats, 432Hz Solfeggio tones, voice microphone recorder, and audio trimmer.",
+    "tags": [
+      "audio",
+      "sound",
+      "voice recorder",
+      "trimmer",
+      "cutter",
+      "binaural",
+      "tones",
+      "brown noise",
+      "pink noise",
+      "audio studio"
+    ],
+    "icon": "Waves",
+    "componentId": "audio-studio",
+    "featured": true,
+    "badge": "New"
+  },
+  {
     "id": "video-downloader-helper",
     "name": "Video & Stream Media Grabber",
     "category": "Media & Studio",
@@ -506,7 +528,7 @@ export const TOOLS_DATA: ToolItem[] = [
   },
   {
     "id": "file-transformer",
-    "name": "Images to PDF & Document Sticher",
+    "name": "Images to PDF & Document Stitcher",
     "category": "Files & Documents",
     "description": "Compile multiple images into a clean single PDF, format text to PDF, and manage ZIP archives.",
     "tags": [
