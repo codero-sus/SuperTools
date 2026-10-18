@@ -2,40 +2,44 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
-    "id": "background-remover",
-    "name": "Background Remover",
+    "id": "auto-photo-processor",
+    "name": "Automatic Photo Processing Studio",
     "category": "Media & Studio",
-    "description": "Instant photo background removal with color-keying, tolerance sliders, edge softening, and transparent PNG export.",
+    "description": "1-click smart auto-enhancement, dynamic range stretch, portrait retouch glow, vivid HDR, film presets, social auto-crop & batch ZIP export.",
     "tags": [
-      "background",
-      "remove bg",
-      "transparent",
-      "png",
       "photo",
-      "chroma key",
-      "editor"
+      "auto enhance",
+      "automatic photo processing",
+      "hdr",
+      "portrait",
+      "color grade",
+      "batch photo",
+      "crop"
     ],
-    "icon": "Eraser",
-    "componentId": "bg-remover",
+    "icon": "Wand2",
+    "componentId": "auto-photo-processor",
     "featured": true,
     "badge": "Popular"
   },
   {
-    "id": "passport-photo-maker",
-    "name": "Passport & Visa Photo Maker",
-    "category": "Media & Studio",
-    "description": "Create official biometric passport photos for US (2x2\"), UK/EU (35x45mm), India, and Schengen with auto background replace and 4x6\" printable sheet tiling.",
+    "id": "universal-file-converter",
+    "name": "Universal Multi-Format File Converter",
+    "category": "Files & Documents",
+    "description": "Convert across dozens of formats: Images (PNG, JPG, WebP, ICO, BMP), Spreadsheets (Excel XLSX, CSV, TSV), Documents (JSON, YAML, XML, HTML, Markdown, PDF), and Archives.",
     "tags": [
-      "passport",
-      "visa",
-      "photo",
-      "biometric",
-      "id photo",
-      "us passport",
-      "print sheet"
+      "file converter",
+      "convert file",
+      "xlsx",
+      "csv to json",
+      "png to jpg",
+      "webp",
+      "ico",
+      "pdf",
+      "yaml",
+      "xml"
     ],
-    "icon": "UserCheck",
-    "componentId": "passport-photo",
+    "icon": "RefreshCw",
+    "componentId": "universal-file-converter",
     "featured": true,
     "badge": "Popular"
   },
@@ -62,7 +66,7 @@ export const TOOLS_DATA: ToolItem[] = [
   },
   {
     "id": "screen-recorder",
-    "name": "Screen & Audio Recorder",
+    "name": "Screen & Video Recorder",
     "category": "Media & Studio",
     "description": "Record full screen, application windows, or browser tabs with microphone audio directly in your browser. No watermark, no server upload.",
     "tags": [
@@ -77,27 +81,6 @@ export const TOOLS_DATA: ToolItem[] = [
     "componentId": "screen-recorder",
     "featured": true,
     "badge": "New"
-  },
-  {
-    "id": "audio-studio",
-    "name": "Peaceful Audio & Focus Studio",
-    "category": "Media & Studio",
-    "description": "Calming Brownian/Pink noise, Binaural brainwave focus beats (Alpha/Theta), 432Hz Solfeggio healing tones, and in-browser voice recorder.",
-    "tags": [
-      "audio",
-      "peace",
-      "brown noise",
-      "pink noise",
-      "binaural",
-      "relax",
-      "focus",
-      "432hz",
-      "tones"
-    ],
-    "icon": "Waves",
-    "componentId": "audio-studio",
-    "featured": true,
-    "badge": "Popular"
   },
   {
     "id": "qr-generator",
@@ -148,9 +131,9 @@ export const TOOLS_DATA: ToolItem[] = [
   },
   {
     "id": "image-resizer",
-    "name": "Image Resizer & Format Converter",
+    "name": "Image Resizer & Dimensions Optimizer",
     "category": "Media & Studio",
-    "description": "Resize images with aspect ratio lock, compress dimensions, and convert format between PNG, JPEG, and WebP.",
+    "description": "Resize images with aspect ratio lock, target dimensions, and format export in PNG, JPEG, and WebP.",
     "tags": [
       "image",
       "resize",
@@ -161,22 +144,6 @@ export const TOOLS_DATA: ToolItem[] = [
     ],
     "icon": "Image",
     "componentId": "image-resizer"
-  },
-  {
-    "id": "image-filter-studio",
-    "name": "Photo Filter & Adjust Studio",
-    "category": "Media & Studio",
-    "description": "Live adjustments for brightness, contrast, grayscale, sepia, saturation, and blur with instant download.",
-    "tags": [
-      "photo",
-      "filter",
-      "brightness",
-      "contrast",
-      "grayscale",
-      "editor"
-    ],
-    "icon": "Sliders",
-    "componentId": "image-filter-studio"
   },
   {
     "id": "aspect-ratio-calc",
@@ -481,7 +448,7 @@ export const TOOLS_DATA: ToolItem[] = [
     "id": "keycode-inspector",
     "name": "Keyboard Event & KeyCode Inspector",
     "category": "Code & Web Lab",
-    "description": "Press any key to inspect `event.key`, `event.code`, `event.which`, keyCode, modifiers, and event stream history.",
+    "description": "Press any key to inspect event.key, event.code, event.which, keyCode, modifiers, and event stream history.",
     "tags": [
       "keycode",
       "keyboard",
@@ -511,7 +478,7 @@ export const TOOLS_DATA: ToolItem[] = [
     "id": "curl-to-fetch",
     "name": "cURL Command to Fetch() Converter",
     "category": "Code & Web Lab",
-    "description": "Convert terminal cURL requests into native modern JavaScript `fetch()` syntax with headers, body, and method.",
+    "description": "Convert terminal cURL requests into native modern JavaScript fetch() syntax with headers, body, and method.",
     "tags": [
       "curl",
       "fetch",
@@ -539,22 +506,20 @@ export const TOOLS_DATA: ToolItem[] = [
   },
   {
     "id": "file-transformer",
-    "name": "File & Document Transformer",
+    "name": "Images to PDF & Document Sticher",
     "category": "Files & Documents",
-    "description": "Compile multiple images into a PDF, convert Text/Markdown to PDF, transform CSV ⇄ JSON ⇄ YAML, and create/extract ZIP archives.",
+    "description": "Compile multiple images into a clean single PDF, format text to PDF, and manage ZIP archives.",
     "tags": [
       "file",
       "pdf",
       "images to pdf",
-      "csv to json",
       "zip",
       "compress",
       "archive"
     ],
     "icon": "FileArchive",
     "componentId": "file-transformer",
-    "featured": true,
-    "badge": "Popular"
+    "featured": true
   },
   {
     "id": "ocr-tool",

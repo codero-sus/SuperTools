@@ -2,26 +2,26 @@ const fs = require('fs');
 const path = require('path');
 
 const curatedTools = [
-  // 1. MEDIA & STUDIO
+  // 1. PHOTO & MEDIA (AUTOMATIC PHOTO PROCESSING)
   {
-    id: 'background-remover',
-    name: 'Background Remover',
+    id: 'auto-photo-processor',
+    name: 'Automatic Photo Processing Studio',
     category: 'Media & Studio',
-    description: 'Instant photo background removal with color-keying, tolerance sliders, edge softening, and transparent PNG export.',
-    tags: ['background', 'remove bg', 'transparent', 'png', 'photo', 'chroma key', 'editor'],
-    icon: 'Eraser',
-    componentId: 'bg-remover',
+    description: '1-click smart auto-enhancement, dynamic range stretch, portrait retouch glow, vivid HDR, film presets, social auto-crop & batch ZIP export.',
+    tags: ['photo', 'auto enhance', 'automatic photo processing', 'hdr', 'portrait', 'color grade', 'batch photo', 'crop'],
+    icon: 'Wand2',
+    componentId: 'auto-photo-processor',
     featured: true,
     badge: 'Popular'
   },
   {
-    id: 'passport-photo-maker',
-    name: 'Passport & Visa Photo Maker',
-    category: 'Media & Studio',
-    description: 'Create official biometric passport photos for US (2x2"), UK/EU (35x45mm), India, and Schengen with auto background replace and 4x6" printable sheet tiling.',
-    tags: ['passport', 'visa', 'photo', 'biometric', 'id photo', 'us passport', 'print sheet'],
-    icon: 'UserCheck',
-    componentId: 'passport-photo',
+    id: 'universal-file-converter',
+    name: 'Universal Multi-Format File Converter',
+    category: 'Files & Documents',
+    description: 'Convert across dozens of formats: Images (PNG, JPG, WebP, ICO, BMP), Spreadsheets (Excel XLSX, CSV, TSV), Documents (JSON, YAML, XML, HTML, Markdown, PDF), and Archives.',
+    tags: ['file converter', 'convert file', 'xlsx', 'csv to json', 'png to jpg', 'webp', 'ico', 'pdf', 'yaml', 'xml'],
+    icon: 'RefreshCw',
+    componentId: 'universal-file-converter',
     featured: true,
     badge: 'Popular'
   },
@@ -38,7 +38,7 @@ const curatedTools = [
   },
   {
     id: 'screen-recorder',
-    name: 'Screen & Audio Recorder',
+    name: 'Screen & Video Recorder',
     category: 'Media & Studio',
     description: 'Record full screen, application windows, or browser tabs with microphone audio directly in your browser. No watermark, no server upload.',
     tags: ['screen recorder', 'record', 'video', 'microphone', 'capture', 'tab record'],
@@ -46,17 +46,6 @@ const curatedTools = [
     componentId: 'screen-recorder',
     featured: true,
     badge: 'New'
-  },
-  {
-    id: 'audio-studio',
-    name: 'Peaceful Audio & Focus Studio',
-    category: 'Media & Studio',
-    description: 'Calming Brownian/Pink noise, Binaural brainwave focus beats (Alpha/Theta), 432Hz Solfeggio healing tones, and in-browser voice recorder.',
-    tags: ['audio', 'peace', 'brown noise', 'pink noise', 'binaural', 'relax', 'focus', '432hz', 'tones'],
-    icon: 'Waves',
-    componentId: 'audio-studio',
-    featured: true,
-    badge: 'Popular'
   },
   {
     id: 'qr-generator',
@@ -88,21 +77,12 @@ const curatedTools = [
   },
   {
     id: 'image-resizer',
-    name: 'Image Resizer & Format Converter',
+    name: 'Image Resizer & Dimensions Optimizer',
     category: 'Media & Studio',
-    description: 'Resize images with aspect ratio lock, compress dimensions, and convert format between PNG, JPEG, and WebP.',
+    description: 'Resize images with aspect ratio lock, target dimensions, and format export in PNG, JPEG, and WebP.',
     tags: ['image', 'resize', 'converter', 'png to jpg', 'webp', 'compress'],
     icon: 'Image',
     componentId: 'image-resizer'
-  },
-  {
-    id: 'image-filter-studio',
-    name: 'Photo Filter & Adjust Studio',
-    category: 'Media & Studio',
-    description: 'Live adjustments for brightness, contrast, grayscale, sepia, saturation, and blur with instant download.',
-    tags: ['photo', 'filter', 'brightness', 'contrast', 'grayscale', 'editor'],
-    icon: 'Sliders',
-    componentId: 'image-filter-studio'
   },
   {
     id: 'aspect-ratio-calc',
@@ -284,7 +264,7 @@ const curatedTools = [
     id: 'keycode-inspector',
     name: 'Keyboard Event & KeyCode Inspector',
     category: 'Code & Web Lab',
-    description: 'Press any key to inspect `event.key`, `event.code`, `event.which`, keyCode, modifiers, and event stream history.',
+    description: 'Press any key to inspect event.key, event.code, event.which, keyCode, modifiers, and event stream history.',
     tags: ['keycode', 'keyboard', 'event.key', 'javascript', 'key event'],
     icon: 'Keyboard',
     componentId: 'keycode-inspector'
@@ -302,7 +282,7 @@ const curatedTools = [
     id: 'curl-to-fetch',
     name: 'cURL Command to Fetch() Converter',
     category: 'Code & Web Lab',
-    description: 'Convert terminal cURL requests into native modern JavaScript `fetch()` syntax with headers, body, and method.',
+    description: 'Convert terminal cURL requests into native modern JavaScript fetch() syntax with headers, body, and method.',
     tags: ['curl', 'fetch', 'api', 'javascript', 'http request'],
     icon: 'Code2',
     componentId: 'curl-to-fetch'
@@ -320,14 +300,13 @@ const curatedTools = [
   // 4. FILES & DOCUMENTS
   {
     id: 'file-transformer',
-    name: 'File & Document Transformer',
+    name: 'Images to PDF & Document Sticher',
     category: 'Files & Documents',
-    description: 'Compile multiple images into a PDF, convert Text/Markdown to PDF, transform CSV ⇄ JSON ⇄ YAML, and create/extract ZIP archives.',
-    tags: ['file', 'pdf', 'images to pdf', 'csv to json', 'zip', 'compress', 'archive'],
+    description: 'Compile multiple images into a clean single PDF, format text to PDF, and manage ZIP archives.',
+    tags: ['file', 'pdf', 'images to pdf', 'zip', 'compress', 'archive'],
     icon: 'FileArchive',
     componentId: 'file-transformer',
-    featured: true,
-    badge: 'Popular'
+    featured: true
   },
   {
     id: 'ocr-tool',
@@ -796,4 +775,4 @@ export const TOOLS_DATA: ToolItem[] = ${JSON.stringify(curatedTools, null, 2)};
 `;
 
 fs.writeFileSync(path.join(__dirname, '../src/data/toolsData.ts'), fileContent, 'utf-8');
-console.log(`Successfully generated ${curatedTools.length} curated powerhouse tools!`);
+console.log(`Successfully generated ${curatedTools.length} curated powerhouse tools without Photoshop or audio junk!`);
