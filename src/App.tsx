@@ -8,8 +8,20 @@ import { SearchModal } from './components/SearchModal';
 import { ToolCard } from './components/ToolCard';
 import { ToolHeader } from './components/ToolHeader';
 import { CheatsheetView } from './components/CheatsheetView';
+import { AmbientBackground, AmbientEffect } from './components/effects/AmbientBackground';
 
-// Tool suites
+// Core New Powerhouse Tools
+import { BackgroundRemover } from './tools/BackgroundRemover';
+import { PassportPhotoMaker } from './tools/PassportPhotoMaker';
+import { UnifiedTextForge } from './tools/UnifiedTextForge';
+import { OcrTool } from './tools/OcrTool';
+import { FileTransformer } from './tools/FileTransformer';
+import { VideoDownloaderHelper } from './tools/VideoDownloaderHelper';
+import { AudioStudio } from './tools/AudioStudio';
+import { PrivacyVault } from './tools/PrivacyVault';
+import { ScreenRecorder } from './tools/ScreenRecorder';
+
+// Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
 import { TextDiffTool } from './tools/TextDiffTool';
 import { LoremGenerator } from './tools/LoremGenerator';
@@ -47,21 +59,20 @@ import { TimerTools } from './tools/TimerTools';
 import { ColorTools } from './tools/ColorTools';
 import { MediaTools } from './tools/MediaTools';
 
-import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers } from 'lucide-react';
+import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, Star, SlidersHorizontal } from 'lucide-react';
 
-const CATEGORY_LIST = [
+const CATEGORIES: { id: string; name: string }[] = [
   { id: 'all', name: 'All Tools' },
-  { id: 'Text & Content', name: 'Text & Content' },
-  { id: 'Code & Web Dev', name: 'Code & Web Dev' },
-  { id: 'Crypto & Security', name: 'Crypto & Security' },
+  { id: 'Media & Studio', name: 'Media & Studio' },
+  { id: 'Text & Crypto Forge', name: 'Text & Crypto Forge' },
+  { id: 'Code & Web Lab', name: 'Code & Web Lab' },
+  { id: 'Files & Documents', name: 'Files & Documents' },
+  { id: 'Math & Engineering', name: 'Math & Engineering' },
   { id: 'Unit Converters', name: 'Unit Converters' },
-  { id: 'Math & Science', name: 'Math & Science' },
   { id: 'Finance & Money', name: 'Finance & Money' },
-  { id: 'Date & Time', name: 'Date & Time' },
-  { id: 'Color & Design', name: 'Color & Design' },
-  { id: 'Image & Media', name: 'Image & Media' },
-  { id: 'Productivity', name: 'Productivity' },
-  { id: 'Cheatsheets', name: 'Cheatsheets' }
+  { id: 'Date, Time & World', name: 'Date, Time & World' },
+  { id: 'Color & Palette', name: 'Color & Palette' },
+  { id: 'Cheatsheets & Guides', name: 'Cheatsheets & Guides' }
 ];
 
 export const App: React.FC = () => {
@@ -69,6 +80,11 @@ export const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('supertools_theme') === 'dark' ||
       (!('supertools_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  // Peaceful Ambient atmosphere mode ('leaves' | 'stars' | 'rain' | 'fireflies' | 'off')
+  const [ambientEffect, setAmbientEffect] = useState<AmbientEffect>(() => {
+    return (localStorage.getItem('supertools_ambient_mode') as AmbientEffect) || 'leaves';
   });
 
   // Navigation state (active tool ID, or null for catalog view)
@@ -81,13 +97,14 @@ export const App: React.FC = () => {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // Favorites state
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('supertools_favorites');
-      return saved ? JSON.parse(saved) : ['json-formatter', 'uuid-v4', 'qr-generator', 'password-generator', 'unit-converter'];
+      return saved ? JSON.parse(saved) : ['background-remover', 'passport-photo-maker', 'unified-text-forge', 'file-transformer', 'ocr-tool', 'video-downloader-helper'];
     } catch {
       return [];
     }
@@ -129,6 +146,14 @@ export const App: React.FC = () => {
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
+  const cycleAmbient = () => {
+    const modes: AmbientEffect[] = ['leaves', 'stars', 'rain', 'fireflies', 'off'];
+    const nextIdx = (modes.indexOf(ambientEffect) + 1) % modes.length;
+    const nextMode = modes[nextIdx];
+    setAmbientEffect(nextMode);
+    localStorage.setItem('supertools_ambient_mode', nextMode);
+  };
+
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setFavorites(prev => {
@@ -166,11 +191,12 @@ export const App: React.FC = () => {
     return TOOLS.find(t => t.id === activeToolId);
   }, [activeToolId]);
 
-  // Catalog filtering
+  // Multi-dimensional filtering (Category, Badge, Search, Favorites)
   const filteredTools = useMemo(() => {
     return TOOLS.filter((t: ToolItem) => {
       if (showFavoritesOnly && !favorites.includes(t.id)) return false;
       if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
+      if (selectedBadge && t.badge !== selectedBadge) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = t.name.toLowerCase().includes(q);
@@ -180,7 +206,7 @@ export const App: React.FC = () => {
       }
       return true;
     });
-  }, [selectedCategory, showFavoritesOnly, searchQuery, favorites]);
+  }, [selectedCategory, selectedBadge, showFavoritesOnly, searchQuery, favorites]);
 
   // Related tools for the active tool
   const relatedTools = useMemo(() => {
@@ -195,8 +221,19 @@ export const App: React.FC = () => {
     const id = activeTool.id;
     const mode = activeTool.mode;
 
+    // Direct High-Priority Power Tools
+    if (id === 'background-remover') return <BackgroundRemover />;
+    if (id === 'passport-photo-maker') return <PassportPhotoMaker />;
+    if (id === 'unified-text-forge') return <UnifiedTextForge />;
+    if (id === 'ocr-tool') return <OcrTool />;
+    if (id === 'file-transformer') return <FileTransformer />;
+    if (id === 'video-downloader-helper') return <VideoDownloaderHelper />;
+    if (id === 'screen-recorder') return <ScreenRecorder />;
+    if (id === 'audio-studio') return <AudioStudio />;
+    if (id === 'privacy-vault') return <PrivacyVault />;
+
     // Cheatsheets
-    if (activeTool.category === 'Cheatsheets' || id.startsWith('cheatsheet-')) {
+    if (activeTool.category === 'Cheatsheets & Guides' || id.startsWith('cheatsheet-')) {
       const sheetSlug = id.replace('cheatsheet-', '');
       return (
         <CheatsheetView
@@ -209,53 +246,51 @@ export const App: React.FC = () => {
       );
     }
 
-    // Text & Content Suite
-    if (id === 'text-diff') return <TextDiffTool />;
-    if (id === 'lorem-ipsum') return <LoremGenerator />;
-    if (activeTool.category === 'Text & Content' || mode?.startsWith('cipher-') || mode?.startsWith('extract-')) {
-      return <TextTools mode={mode || id} />;
-    }
-
-    // Code & Dev Suite
-    if (id === 'jwt-decoder') return <JwtDecoder />;
-    if (id === 'cron-helper' || id === 'cron-generator') return <CronTool />;
-    if (id === 'chmod-calculator') return <ChmodTool />;
-    if (id === 'regex-tester') return <RegExTester />;
-    if (activeTool.category === 'Code & Web Dev' || id.startsWith('json-') || id.startsWith('yaml-') || id.startsWith('csv-') || id === 'url-encoder' || id === 'html-entity-encoder' || id === 'curl-to-fetch' || id.endsWith('-beautifier') || id.endsWith('-formatter') || id.endsWith('-validator') || id.endsWith('-generator')) {
-      return <CodeTools mode={mode || id} />;
-    }
-
-    // Web & Network Suite
-    if (id.startsWith('uuid-') || id === 'nanoid-generator') return <UuidTool mode={mode || id} />;
+    // Media & Studio Suite
     if (id === 'qr-generator') return <QrGenerator />;
     if (id === 'barcode-generator') return <BarcodeGenerator />;
     if (id === 'qr-scanner') return <QrScanner />;
-    if (id === 'keycode-inspector') return <KeycodeInspector />;
-    if (id.includes('og-') || id.includes('twitter-') || id.includes('meta-tag')) return <MetaGenerator />;
+    if (id === 'image-resizer') return <MediaTools mode="resizer" />;
+    if (id === 'image-filter-studio') return <MediaTools mode="filter" />;
+    if (id === 'aspect-ratio-calc') return <MediaTools mode="aspect" />;
+    if (id === 'screen-detector') return <MediaTools mode="screen" />;
 
-    // Crypto & Security Suite
-    if (id === 'password-generator' || id === 'passphrase-generator' || id === 'pin-generator') return <PasswordTool mode={mode || id} />;
+    // Text & Crypto Forge Suite
+    if (id === 'text-diff') return <TextDiffTool />;
+    if (id === 'lorem-ipsum') return <LoremGenerator />;
+    if (id === 'password-generator') return <PasswordTool mode="password" />;
     if (id === 'password-strength') return <PasswordStrengthTool />;
+    if (id === 'crypto-hashes') return <CryptoTools mode="sha256" />;
     if (id === 'rsa-key-generator') return <RsaTool />;
     if (id === 'totp-generator') return <TotpTool />;
-    if (id === 'file-checksum') return <FileChecksumTool mode={mode} />;
-    if (activeTool.category === 'Crypto & Security' || id.includes('hash') || id.includes('hmac') || id.includes('aes') || id.includes('base64') || id.includes('random-')) {
-      return <CryptoTools mode={mode || id} />;
-    }
+    if (id === 'file-checksum') return <FileChecksumTool />;
+
+    // Code & Web Lab Suite
+    if (id === 'json-formatter') return <CodeTools mode="json-formatter" />;
+    if (id === 'jwt-decoder') return <JwtDecoder />;
+    if (id === 'cron-helper') return <CronTool />;
+    if (id === 'chmod-calculator') return <ChmodTool />;
+    if (id === 'regex-tester') return <RegExTester />;
+    if (id === 'uuid-v4') return <UuidTool mode="uuid-v4" />;
+    if (id === 'keycode-inspector') return <KeycodeInspector />;
+    if (id === 'meta-tag-generator') return <MetaGenerator />;
+    if (id === 'curl-to-fetch') return <CodeTools mode="curl-to-fetch" />;
+    if (id === 'sql-formatter') return <CodeTools mode="sql-formatter" />;
+
+    // Math & Engineering Suite
+    if (id === 'scientific-calc') return <ScientificCalc />;
+    if (id === 'number-base') return <NumberBaseTool />;
+    if (id === 'roman-converter') return <RomanConverter />;
+    if (id === 'dice-roller') return <DiceTool />;
+    if (id === 'percentage-calc') return <MathTools mode="percentage-calc" />;
+    if (id === 'statistics-calc') return <MathTools mode="statistics-calc" />;
+    if (id === 'quadratic-calc') return <MathTools mode="quadratic-calc" />;
+    if (id === 'ohms-law') return <MathTools mode="ohms-law" />;
 
     // Unit Converters Suite
     if (id === 'unit-converter') return <UnitConverterTool />;
-    if (id === 'number-base') return <NumberBaseTool />;
-    if (id === 'roman-converter') return <RomanConverter />;
-    if (id === 'scientific-calc') return <ScientificCalc />;
-    if (id === 'dice-roller') return <DiceTool />;
-    if (activeTool.category === 'Unit Converters' || id.endsWith('-converter')) {
+    if (activeTool.category === 'Unit Converters') {
       return <QuickUnitTool mode={mode || id} />;
-    }
-
-    // Math & Numbers Suite
-    if (activeTool.category === 'Math & Science') {
-      return <MathTools mode={mode || id} />;
     }
 
     // Finance & Money Suite
@@ -266,39 +301,32 @@ export const App: React.FC = () => {
       return <FinanceTools mode={mode || id} />;
     }
 
-    // Date & Time Suite
+    // Date, Time & World Suite
     if (id === 'world-clock') return <WorldClockTool />;
     if (id === 'stopwatch') return <TimerTools mode="stopwatch" />;
-    if (id === 'countdown-timer') return <TimerTools mode="countdown" />;
     if (id === 'pomodoro') return <TimerTools mode="pomodoro" />;
-    if (activeTool.category === 'Date & Time') {
+    if (activeTool.category === 'Date, Time & World') {
       return <DateTimeTools mode={mode || id} />;
     }
 
-    // Color & Design Suite
+    // Color & Palette Suite
     if (id === 'contrast-checker') return <ColorTools mode="contrast" />;
     if (id === 'gradient-generator') return <ColorTools mode="gradient" />;
-    if (id === 'color-palette') return <ColorTools mode="palette" />;
     if (id === 'shades-tints') return <ColorTools mode="shades" />;
-    if (activeTool.category === 'Color & Design') {
+    if (activeTool.category === 'Color & Palette') {
       return <ColorTools mode="converter" />;
     }
 
-    // Media & Image Suite
-    if (id === 'image-filter-studio') return <MediaTools mode="filter" />;
-    if (id === 'aspect-ratio-calc') return <MediaTools mode="aspect" />;
-    if (id === 'screen-detector') return <MediaTools mode="screen" />;
-    if (activeTool.category === 'Image & Media') {
-      return <MediaTools mode="resizer" />;
-    }
-
     // Fallback default
-    return <TextTools mode="case-converter" />;
+    return <UnifiedTextForge />;
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* Search Modal */}
+    <div className="min-h-screen bg-[#fafbfc] dark:bg-[#090d16] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative selection:bg-indigo-500 selection:text-white">
+      {/* Peaceful Ambient Atmosphere Background (Leaves / Stars / Rain / Fireflies) */}
+      <AmbientBackground effect={ambientEffect} isDark={isDarkMode} />
+
+      {/* Global Quick Search Modal (⌘K) */}
       <SearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
@@ -319,14 +347,15 @@ export const App: React.FC = () => {
           setActiveToolId(null);
         }}
         onGoHome={navigateHome}
+        ambientEffect={ambientEffect}
+        onCycleAmbient={cycleAmbient}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
         {activeTool ? (
           /* SINGLE TOOL VIEW */
           <div className="space-y-6">
-            {/* Tool Header Card */}
             <ToolHeader
               tool={activeTool}
               isFavorite={favorites.includes(activeTool.id)}
@@ -334,14 +363,14 @@ export const App: React.FC = () => {
               onBack={navigateHome}
             />
 
-            {/* Tool Interactive Component */}
+            {/* Render Selected Tool Interactive Component */}
             <div className="pt-2">
               {renderActiveToolComponent()}
             </div>
 
-            {/* Related Tools Section */}
+            {/* Related Tools Suggestions */}
             {relatedTools.length > 0 && (
-              <div className="pt-10 border-t border-slate-200/80 dark:border-slate-800/80 space-y-4">
+              <div className="pt-10 border-t border-slate-200/60 dark:border-slate-800/60 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
                     More in {activeTool.category}
@@ -353,7 +382,7 @@ export const App: React.FC = () => {
                     }}
                     className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
-                    View all
+                    View category &rarr;
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -371,39 +400,41 @@ export const App: React.FC = () => {
             )}
           </div>
         ) : (
-          /* TOOL CATALOG / EXPLORATION HOME VIEW */
+          /* CATALOG EXPLORATION HOME VIEW */
           <div className="space-y-8">
-            {/* Hero Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-8 sm:p-12 shadow-xl border border-indigo-500/20">
+            {/* Atmospheric Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-[#0e1628] text-white p-8 sm:p-12 shadow-2xl border border-indigo-500/20">
               <div className="relative z-10 max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold tracking-wide uppercase">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  100% Client-Side • Zero Backend • Offline Ready
+                  Zero Backend • 100% Client-Side • Safe & Private
                 </div>
+
                 <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
                   SuperTools
-                  <span className="block text-indigo-400 font-extrabold text-2xl sm:text-3xl mt-1">
-                    365+ Pure Web Developer & Everyday Utilities
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-300 to-emerald-400 font-extrabold text-2xl sm:text-4xl mt-1">
+                    Your All-in-One Powerhouse Toolkit
                   </span>
                 </h1>
+
                 <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
-                  Fast, private, and powerful Swiss Army Knife for developers, designers, and creators. All calculations, conversions, hashes, and formatting execute entirely in your browser memory.
+                  Fast, private, and beautifully designed developer and everyday studio. Background removal, passport photos, video grabber, 1337 text forge, OCR, file transformer, screen recording, and peaceful ambient sounds.
                 </p>
 
-                {/* Quick Action search bar inside hero */}
+                {/* Instant Search Bar */}
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-lg">
                   <div
                     onClick={() => setSearchModalOpen(true)}
                     className="flex-1 flex items-center justify-between px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 backdrop-blur-md cursor-pointer transition-all text-slate-300 text-sm shadow-inner"
                   >
-                    <span>Search all 365+ utilities...</span>
-                    <kbd className="px-2 py-0.5 rounded text-[11px] font-mono bg-white/20 text-white font-bold">
+                    <span>Search any tool, converter, or guide...</span>
+                    <kbd className="px-2 py-0.5 rounded-lg text-[11px] font-mono bg-white/20 text-white font-bold">
                       ⌘K
                     </kbd>
                   </div>
                   <button
                     onClick={handleRandomTool}
-                    className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg transition-all"
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg transition-all"
                   >
                     <Sparkles className="w-4 h-4" />
                     Surprise Me
@@ -412,15 +443,15 @@ export const App: React.FC = () => {
               </div>
 
               {/* Decorative background glows */}
-              <div className="absolute right-0 top-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-              <div className="absolute right-40 bottom-0 -mb-20 w-80 h-80 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
+              <div className="absolute right-0 top-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
+              <div className="absolute right-40 bottom-0 -mb-20 w-80 h-80 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
             </div>
 
-            {/* Recents strip if any */}
+            {/* Recently Visited Quick Access Bar */}
             {recentTools.length > 0 && !showFavoritesOnly && (
               <div className="space-y-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Recently Visited
+                  Recently Used
                 </span>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                   {recentTools.map((id: string) => {
@@ -430,7 +461,7 @@ export const App: React.FC = () => {
                       <button
                         key={t.id}
                         onClick={() => navigateToTool(t)}
-                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-indigo-400 whitespace-nowrap shadow-2xs"
+                        className="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-indigo-400 whitespace-nowrap shadow-2xs transition-all"
                       >
                         {t.name}
                       </button>
@@ -440,19 +471,42 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Category Filter Pills Bar */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Explore by Category
-                </span>
-                <span className="text-xs font-semibold text-slate-500">
-                  Showing {filteredTools.length} of {TOOLS.length} tools
-                </span>
+            {/* Powerful Category & Badge Filter System */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Category Filters
+                  </span>
+                  {selectedBadge && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                      Badge: {selectedBadge}
+                      <button onClick={() => setSelectedBadge(null)} className="ml-1 text-slate-400 hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400">Filter by Tag:</span>
+                  {['Popular', 'New', 'AI / Canvas', 'Privacy'].map(badge => (
+                    <button
+                      key={badge}
+                      onClick={() => setSelectedBadge(selectedBadge === badge ? null : badge)}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        selectedBadge === badge
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
+                      }`}
+                    >
+                      {badge}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Category Pills Bar */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {CATEGORY_LIST.map((cat) => {
+                {CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat.id && !showFavoritesOnly;
                   const count = cat.id === 'all'
                     ? TOOLS.length
@@ -465,10 +519,10 @@ export const App: React.FC = () => {
                         setSelectedCategory(cat.id);
                         setShowFavoritesOnly(false);
                       }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                      className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
                         isSelected
                           ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                          : 'bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100'
                       }`}
                     >
                       <span>{cat.name}</span>
@@ -486,13 +540,13 @@ export const App: React.FC = () => {
                 {/* Favorites filter pill */}
                 <button
                   onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
                     showFavoritesOnly
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100'
                   }`}
                 >
-                  <Heart className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-current' : 'text-rose-500'}`} />
+                  <Heart className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
                   Favorites ({favorites.length})
                 </button>
               </div>
@@ -512,23 +566,24 @@ export const App: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="p-16 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <div className="p-16 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-center space-y-3">
                 <Layers className="w-10 h-10 text-slate-400 mx-auto" />
                 <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">
                   No matching tools found
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Try adjusting your search terms or clearing the active category filters.
+                  Try clearing your search query or selecting a different category filter.
                 </p>
                 <button
                   onClick={() => {
                     setSelectedCategory('all');
+                    setSelectedBadge(null);
                     setShowFavoritesOnly(false);
                     setSearchQuery('');
                   }}
                   className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700"
                 >
-                  Reset Filters
+                  Reset All Filters
                 </button>
               </div>
             )}
@@ -536,15 +591,15 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Global Footer */}
-      <footer className="mt-16 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 py-8 text-xs text-slate-500">
+      {/* Global Clean Footer */}
+      <footer className="mt-16 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md py-8 text-xs text-slate-500 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-slate-900 dark:text-white">SuperTools</span>
+            <span className="font-black text-slate-900 dark:text-white">SuperTools</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>365+ Pure Web Utilities</span>
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium">
-              100% Client-Side
+            <span>Client-Side Studio</span>
+            <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold">
+              100% Private • 0 Backend
             </span>
           </div>
 
