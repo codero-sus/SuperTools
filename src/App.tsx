@@ -9,6 +9,7 @@ import { ToolCard } from './components/ToolCard';
 import { ToolHeader } from './components/ToolHeader';
 import { CheatsheetView } from './components/CheatsheetView';
 import { AmbientBackground, AmbientEffect } from './components/effects/AmbientBackground';
+import { CategoryHub } from './components/CategoryHub';
 
 // Core Powerhouse Tools
 import { AutoPhotoProcessor } from './tools/AutoPhotoProcessor';
@@ -59,21 +60,7 @@ import { TimerTools } from './tools/TimerTools';
 import { ColorTools } from './tools/ColorTools';
 import { MediaTools } from './tools/MediaTools';
 
-import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, Star, SlidersHorizontal, Wand2 } from 'lucide-react';
-
-const CATEGORIES: { id: string; name: string }[] = [
-  { id: 'all', name: 'All Tools' },
-  { id: 'Media & Studio', name: 'Media & Studio' },
-  { id: 'Text & Crypto Forge', name: 'Text & Crypto Forge' },
-  { id: 'Code & Web Lab', name: 'Code & Web Lab' },
-  { id: 'Files & Documents', name: 'Files & Documents' },
-  { id: 'Math & Engineering', name: 'Math & Engineering' },
-  { id: 'Unit Converters', name: 'Unit Converters' },
-  { id: 'Finance & Money', name: 'Finance & Money' },
-  { id: 'Date, Time & World', name: 'Date, Time & World' },
-  { id: 'Color & Palette', name: 'Color & Palette' },
-  { id: 'Cheatsheets & Guides', name: 'Cheatsheets & Guides' }
-];
+import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, LayoutGrid, AppWindow, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Theme state
@@ -82,7 +69,7 @@ export const App: React.FC = () => {
       (!('supertools_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // Peaceful Ambient atmosphere mode ('leaves' | 'stars' | 'rain' | 'fireflies' | 'off')
+  // Silent visual ambient atmosphere mode ('leaves' | 'stars' | 'rain' | 'fireflies' | 'off')
   const [ambientEffect, setAmbientEffect] = useState<AmbientEffect>(() => {
     return (localStorage.getItem('supertools_ambient_mode') as AmbientEffect) || 'leaves';
   });
@@ -93,10 +80,13 @@ export const App: React.FC = () => {
     return hash || null;
   });
 
+  // Hub vs Category view
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<Category | null>(null);
+  const [viewMode, setViewMode] = useState<'hub' | 'grid'>('hub');
+
   // Search & Filter state
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -179,6 +169,9 @@ export const App: React.FC = () => {
   const navigateHome = () => {
     window.location.hash = '';
     setActiveToolId(null);
+    setActiveCategoryFilter(null);
+    setShowFavoritesOnly(false);
+    setSearchQuery('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -191,11 +184,11 @@ export const App: React.FC = () => {
     return TOOLS.find(t => t.id === activeToolId);
   }, [activeToolId]);
 
-  // Multi-dimensional filtering (Category, Badge, Search, Favorites)
+  // Filtered tools when in category filter or search or favorites
   const filteredTools = useMemo(() => {
     return TOOLS.filter((t: ToolItem) => {
       if (showFavoritesOnly && !favorites.includes(t.id)) return false;
-      if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
+      if (activeCategoryFilter && t.category !== activeCategoryFilter) return false;
       if (selectedBadge && t.badge !== selectedBadge) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -206,7 +199,7 @@ export const App: React.FC = () => {
       }
       return true;
     });
-  }, [selectedCategory, selectedBadge, showFavoritesOnly, searchQuery, favorites]);
+  }, [activeCategoryFilter, selectedBadge, showFavoritesOnly, searchQuery, favorites]);
 
   // Related tools for the active tool
   const relatedTools = useMemo(() => {
@@ -320,9 +313,11 @@ export const App: React.FC = () => {
     return <AutoPhotoProcessor />;
   };
 
+  const isBrowsingSpecificCategory = Boolean(activeCategoryFilter || searchQuery.trim() || showFavoritesOnly || viewMode === 'grid');
+
   return (
     <div className="min-h-screen bg-[#fafbfc] dark:bg-[#090d16] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative selection:bg-indigo-500 selection:text-white">
-      {/* Peaceful Ambient Atmosphere Background (Leaves / Stars / Rain / Fireflies) */}
+      {/* Silent Visual Peaceful Ambient Canvas (Leaves / Stars / Rain / Fireflies) */}
       <AmbientBackground effect={ambientEffect} isDark={isDarkMode} />
 
       {/* Global Quick Search Modal (⌘K) */}
@@ -333,7 +328,7 @@ export const App: React.FC = () => {
         onSelectTool={navigateToTool}
       />
 
-      {/* Top Navbar */}
+      {/* Top Sticky Navbar */}
       <Navbar
         darkMode={isDarkMode}
         onToggleDarkMode={toggleTheme}
@@ -343,6 +338,7 @@ export const App: React.FC = () => {
         showOnlyFavorites={showFavoritesOnly}
         onToggleShowFavorites={() => {
           setShowFavoritesOnly(!showFavoritesOnly);
+          setActiveCategoryFilter(null);
           setActiveToolId(null);
         }}
         onGoHome={navigateHome}
@@ -376,8 +372,8 @@ export const App: React.FC = () => {
                   </h3>
                   <button
                     onClick={() => {
-                      setSelectedCategory(activeTool.category);
-                      navigateHome();
+                      setActiveCategoryFilter(activeTool.category);
+                      setActiveToolId(null);
                     }}
                     className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
@@ -417,7 +413,7 @@ export const App: React.FC = () => {
                 </h1>
 
                 <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
-                  Fast, private, and beautifully designed developer and everyday studio. Automatic photo enhancement, universal multi-format file converter (XLSX, CSV, PDF, WebP, ICO), 1337 text forge, OCR, video stream helper, and screen recorder.
+                  Automatic photo processing studio, universal multi-format file converter (XLSX, CSV, PDF, WebP, ICO), 1000X precision OCR, audio tools, video stream grabber, and 1337 text forge.
                 </p>
 
                 {/* Instant Search Bar */}
@@ -460,7 +456,7 @@ export const App: React.FC = () => {
                       <button
                         key={t.id}
                         onClick={() => navigateToTool(t)}
-                        className="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-indigo-400 whitespace-nowrap shadow-2xs transition-all"
+                        className="px-3.5 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-indigo-400 whitespace-nowrap shadow-2xs transition-all"
                       >
                         {t.name}
                       </button>
@@ -470,120 +466,112 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Category & Badge Filter System */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Category Filters
-                  </span>
-                  {selectedBadge && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                      Badge: {selectedBadge}
-                      <button onClick={() => setSelectedBadge(null)} className="ml-1 text-slate-400 hover:text-indigo-600">×</button>
-                    </span>
-                  )}
+            {/* USER'S SKETCH ORGANIZATION SYSTEM: CATEGORY HUBS (C1, C2, C3, C4, C5, C6...) */}
+            {!isBrowsingSpecificCategory ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                      Browse by Category Hub
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Organized cleanly into functional studios with instant subcategory shortcuts.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-indigo-400 flex items-center gap-1.5 transition-all"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      View All Tools
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-400">Filter by Tag:</span>
-                  {['Popular', 'New', 'AI / Canvas', 'Privacy'].map(badge => (
-                    <button
-                      key={badge}
-                      onClick={() => setSelectedBadge(selectedBadge === badge ? null : badge)}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                        selectedBadge === badge
-                          ? 'bg-indigo-600 text-white shadow-2xs'
-                          : 'bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
-                      }`}
-                    >
-                      {badge}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Category Pills Bar */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {CATEGORIES.map((cat) => {
-                  const isSelected = selectedCategory === cat.id && !showFavoritesOnly;
-                  const count = cat.id === 'all'
-                    ? TOOLS.length
-                    : TOOLS.filter((t: ToolItem) => t.category === cat.id).length;
-
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        setSelectedCategory(cat.id);
-                        setShowFavoritesOnly(false);
-                      }}
-                      className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{cat.name}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                        isSelected
-                          ? 'bg-indigo-700 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                      }`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-
-                {/* Favorites filter pill */}
-                <button
-                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
-                    showFavoritesOnly
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100'
-                  }`}
-                >
-                  <Heart className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-current' : 'text-amber-500'}`} />
-                  Favorites ({favorites.length})
-                </button>
-              </div>
-            </div>
-
-            {/* Tools Grid */}
-            {filteredTools.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredTools.map((tool: ToolItem) => (
-                  <ToolCard
-                    key={tool.id}
-                    tool={tool}
-                    isFavorite={favorites.includes(tool.id)}
-                    onToggleFavorite={toggleFavorite}
-                    onSelect={navigateToTool}
-                  />
-                ))}
+                {/* THE C1, C2, C3, C4, C5, C6 GRID DISPLAY */}
+                <CategoryHub
+                  tools={TOOLS}
+                  onSelectTool={navigateToTool}
+                  onSelectCategory={(cat) => setActiveCategoryFilter(cat)}
+                />
               </div>
             ) : (
-              <div className="p-16 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-center space-y-3">
-                <Layers className="w-10 h-10 text-slate-400 mx-auto" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">
-                  No matching tools found
-                </h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Try clearing your search query or selecting a different category filter.
-                </p>
-                <button
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setSelectedBadge(null);
-                    setShowFavoritesOnly(false);
-                    setSearchQuery('');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700"
-                >
-                  Reset All Filters
-                </button>
+              /* DETAILED VIEW: INSIDE A SPECIFIC CATEGORY OR SEARCH/FAVORITES */
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setActiveCategoryFilter(null);
+                        setShowFavoritesOnly(false);
+                        setSearchQuery('');
+                        setViewMode('hub');
+                      }}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                      title="Back to Category Hub"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                        {showFavoritesOnly ? 'Bookmarked Favorites' : activeCategoryFilter || (searchQuery ? `Search: "${searchQuery}"` : 'All Tools')}
+                      </h2>
+                      <span className="text-xs text-slate-400">
+                        Showing {filteredTools.length} utilities
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setActiveCategoryFilter(null);
+                        setShowFavoritesOnly(false);
+                        setSearchQuery('');
+                        setViewMode('hub');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <span>Category Hub (C1-C9)</span>
+                      <AppWindow className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid of Tools */}
+                {filteredTools.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filteredTools.map((tool: ToolItem) => (
+                      <ToolCard
+                        key={tool.id}
+                        tool={tool}
+                        isFavorite={favorites.includes(tool.id)}
+                        onToggleFavorite={toggleFavorite}
+                        onSelect={navigateToTool}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-16 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-center space-y-3">
+                    <Layers className="w-10 h-10 text-slate-400 mx-auto" />
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">
+                      No matching tools found
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setActiveCategoryFilter(null);
+                        setShowFavoritesOnly(false);
+                        setSearchQuery('');
+                        setViewMode('hub');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700"
+                    >
+                      Back to Category Hub
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
