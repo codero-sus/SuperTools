@@ -1,11 +1,53 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import { readSheet } from 'read-excel-file/browser';
+import writeXlsxFile from 'write-excel-file/browser';
 import Papa from 'papaparse';
 import yaml from 'js-yaml';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import { Upload, Download, ArrowRight, FileCheck, RefreshCw, FileCode, Database, Image as ImageIcon, FileArchive, Check } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+
+// Helpers for safe, modern client-side Excel conversion
+const parseXlsxToJson = async (fileBlob: Blob | File): Promise<any[]> => {
+  try {
+    const rows = await readSheet(fileBlob);
+    if (!rows || rows.length === 0) return [];
+    const headers = rows[0].map((h: any) => String(h ?? '').trim());
+    return rows.slice(1).map((row: any[]) => {
+      const obj: Record<string, any> = {};
+      headers.forEach((h: string, i: number) => {
+        if (h) obj[h] = row[i] !== undefined && row[i] !== null ? row[i] : '';
+      });
+      return obj;
+    });
+  } catch (err) {
+    console.error('Error reading Excel spreadsheet:', err);
+    return [];
+  }
+};
+
+const createXlsxBlob = async (data: any[]): Promise<Blob> => {
+  if (!data || data.length === 0) {
+    return await writeXlsxFile([[{ value: 'Empty' }]]).toBlob();
+  }
+  const headers = Object.keys(data[0] || {});
+  const headerRow = headers.map(h => ({
+    value: String(h),
+    fontWeight: 'bold' as const,
+    backgroundColor: '#e2e8f0'
+  }));
+  const contentRows = data.map((item: any) =>
+    headers.map(h => {
+      const val = item[h];
+      if (val === null || val === undefined) return { value: '' };
+      if (typeof val === 'number') return { value: val };
+      if (typeof val === 'boolean') return { value: val ? 'true' : 'false' };
+      return { value: String(val) };
+    })
+  );
+  return await writeXlsxFile([headerRow, ...contentRows]).toBlob();
+};
 
 type FileCategory = 'image' | 'data' | 'document' | 'archive' | 'unknown';
 
@@ -160,10 +202,7 @@ export const UniversalFileConverter: React.FC = () => {
         let rawData: any[] = [];
 
         if (srcExt === 'xlsx' || srcExt === 'xls') {
-          const buffer = await file.arrayBuffer();
-          const workbook = XLSX.read(buffer, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          rawData = XLSX.utils.sheet_to_json(firstSheet);
+          rawData = await parseXlsxToJson(file);
         } else if (srcExt === 'csv' || srcExt === 'tsv') {
           const text = await file.text();
           const parsed = Papa.parse(text, { header: true, dynamicTyping: true });
@@ -180,11 +219,7 @@ export const UniversalFileConverter: React.FC = () => {
 
         // Output to target
         if (targetFormat === 'xlsx') {
-          const worksheet = XLSX.utils.json_to_sheet(rawData);
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-          const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-          const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const blob = await createXlsxBlob(rawData);
           setDownloadUrl(URL.createObjectURL(blob));
           setDownloadName(`${baseName}.xlsx`);
         } else if (targetFormat === 'csv') {
@@ -286,16 +321,16 @@ export const UniversalFileConverter: React.FC = () => {
       }
 
       if (pasteTo === 'xlsx') {
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'converted-data.xlsx';
-        link.click();
+        createXlsxBlob(data).then(blob => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'converted-data.xlsx';
+          link.click();
+          setStatusMsg('Excel (.xlsx) generated and download started!');
+        }).catch(err => {
+          setConvertedTextPreview(`Excel export error: ${err.message}`);
+        });
       } else if (pasteTo === 'csv') {
         const res = Papa.unparse(data);
         setConvertedTextPreview(res);

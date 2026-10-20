@@ -28,22 +28,26 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: 3. Compile fresh production build into dist
-echo [3/4] Compiling production build into dist...
-call npm run build
+:: 3. Install any updated dependencies
+echo [3/5] Installing updated dependencies...
+call npm install
 if %ERRORLEVEL% neq 0 (
-    echo [!] Build failed. Installing any new dependencies...
-    call npm install
-    call npm run build
-    if %ERRORLEVEL% neq 0 (
-        echo [ERROR] Build failed! Check the console output above.
-        pause
-        exit /b 1
-    )
+    echo [ERROR] npm install failed!
+    pause
+    exit /b 1
 )
 
-:: 4. Deploy latest build to Firebase Hosting
-echo [4/4] Deploying to Firebase Hosting (the-supertools.web.app)...
+:: 4. Compile fresh production build into dist
+echo [4/5] Compiling production build into dist...
+call npm run build
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Build failed! Check the console output above.
+    pause
+    exit /b 1
+)
+
+:: 5. Deploy latest build to Firebase Hosting
+echo [5/5] Deploying to Firebase Hosting (the-supertools.web.app)...
 call npx --yes firebase-tools deploy --only hosting
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Firebase deploy failed!

@@ -16,7 +16,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-icons': ['lucide-react'],
           'vendor-pdf': ['jspdf', 'html2canvas'],
-          'vendor-excel': ['xlsx'],
+          'vendor-excel': ['read-excel-file/browser', 'write-excel-file/browser'],
         },
       },
     },
