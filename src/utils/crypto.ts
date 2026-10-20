@@ -1,6 +1,6 @@
 import * as CryptoES from 'crypto-es';
 
-export const CryptoJS = {
+export const CryptoJS: any = {
   ...CryptoES,
   enc: {
     Utf8: CryptoES.Utf8,
