@@ -15,12 +15,13 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-icons': ['lucide-react'],
-          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-pdf': ['jspdf'],
           'vendor-excel': ['read-excel-file/browser', 'write-excel-file/browser'],
+          'vendor-utils': ['papaparse', 'js-yaml', 'diff', 'crypto-es', 'jszip'],
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     host: '0.0.0.0',
