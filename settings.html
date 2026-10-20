@@ -349,6 +349,45 @@
         </div>
       </section>
 
+      <!-- Section 4: Cookie Storage & Session Persistence -->
+      <section class="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/></svg>
+              Cookie Storage & Cross-Session Persistence
+            </h2>
+            <p class="text-xs text-slate-400">
+              Mirror hardware tier, custom RAM budgets, and AI model configurations to browser cookies for long-term multi-session retention.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnClearCookies" class="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 text-rose-300 font-bold text-xs transition-all">
+              Clear All Cookies
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="font-bold text-slate-300">Enable Cookie Persistence</span>
+              <input type="checkbox" id="chkCookieSync" checked class="w-4 h-4 rounded text-indigo-600 accent-indigo-600 cursor-pointer" />
+            </label>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              When enabled, all SuperTools preferences are automatically mirrored to 365-day persistent cookies (<code class="text-indigo-400 font-mono">supertools_*</code>) so your AI RAM budget and model choices persist across private tabs and subdomain changes.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Active Cookies Stored</span>
+            <div id="cookieStats" class="font-mono text-[11px] text-emerald-400 p-2.5 rounded-xl bg-slate-900 border border-slate-800 overflow-x-auto whitespace-pre">
+              Checking stored cookies...
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Action Footer -->
       <footer class="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-2">
@@ -520,8 +559,62 @@
       const paletteModel = localStorage.getItem('supertools_palette_model');
       if (paletteModel) document.getElementById('selPaletteModel').value = paletteModel;
 
+      // Cookie storage helpers
+      function setCookie(name, value, days = 365) {
+        const d = new Date();
+        d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+        document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
+      }
+
+      function getCookie(name) {
+        const nameEQ = encodeURIComponent(name) + '=';
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+        return null;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = encodeURIComponent(name) + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
+      }
+
+      function updateCookieStats() {
+        const allCookies = document.cookie ? document.cookie.split(';').map(c => c.trim()) : [];
+        const superCookies = allCookies.filter(c => c.startsWith('supertools_'));
+        const disp = document.getElementById('cookieStats');
+        if (disp) {
+          if (superCookies.length === 0) {
+            disp.textContent = '0 SuperTools cookies active in browser.';
+          } else {
+            disp.textContent = superCookies.length + ' active cookies:\n' + superCookies.join('\n');
+          }
+        }
+      }
+
+      const cookieSyncEnabled = localStorage.getItem('supertools_cookies_enabled') !== 'false';
+      const chkCookieSync = document.getElementById('chkCookieSync');
+      if (chkCookieSync) chkCookieSync.checked = cookieSyncEnabled;
+
+      document.getElementById('btnClearCookies').onclick = () => {
+        const allCookies = document.cookie ? document.cookie.split(';').map(c => c.trim()) : [];
+        allCookies.forEach(c => {
+          const name = c.split('=')[0]?.trim();
+          if (name && name.startsWith('supertools_')) {
+            deleteCookie(name);
+          }
+        });
+        updateCookieStats();
+        alert('All SuperTools cookies cleared from browser!');
+      };
+
       // Save Function
       function saveAllSettings() {
+        const cookiesActive = document.getElementById('chkCookieSync') ? document.getElementById('chkCookieSync').checked : true;
+        localStorage.setItem('supertools_cookies_enabled', String(cookiesActive));
+
         localStorage.setItem('supertools_hw_level', String(currentLevel));
         localStorage.setItem('supertools_hw_auto', String(isAuto));
         localStorage.setItem('supertools_ram_budget', String(customRam));
@@ -540,9 +633,29 @@
         localStorage.setItem('supertools_palette_model', document.getElementById('selPaletteModel').value);
         localStorage.setItem('supertools_speech_lang', document.getElementById('selSpeechLang').value);
 
+        // Mirror to Cookies if enabled
+        if (cookiesActive) {
+          setCookie('supertools_hw_level', String(currentLevel));
+          setCookie('supertools_hw_auto', String(isAuto));
+          setCookie('supertools_ram_budget', String(customRam));
+          setCookie('supertools_res_cap', String(customRes));
+          setCookie('supertools_workers', String(customWorkers));
+          setCookie('supertools_ocr_default_model', document.getElementById('selOcrModel').value);
+          setCookie('supertools_ocr_lang', document.getElementById('selOcrLang').value);
+          setCookie('supertools_bg_precision', document.getElementById('selBgPrecision').value);
+          setCookie('supertools_upscale_factor', document.getElementById('selUpscaleFactor').value);
+          setCookie('supertools_scanner_filter', document.getElementById('selScannerFilter').value);
+          setCookie('supertools_doc_model', document.getElementById('selDocModel').value);
+          setCookie('supertools_redact_model', document.getElementById('selRedactModel').value);
+          setCookie('supertools_summary_model', document.getElementById('selSummaryModel').value);
+          setCookie('supertools_colorize_model', document.getElementById('selColorizeModel').value);
+          setCookie('supertools_palette_model', document.getElementById('selPaletteModel').value);
+          setCookie('supertools_speech_lang', document.getElementById('selSpeechLang').value);
+        }
+
         const notification = document.createElement('div');
         notification.className = 'fixed bottom-6 right-6 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl flex items-center gap-2 z-50 animate-bounce';
-        notification.innerHTML = '<span>✓ Settings Saved Successfully! Redirecting...</span>';
+        notification.innerHTML = '<span>✓ Settings & Cookies Saved Successfully! Redirecting...</span>';
         document.body.appendChild(notification);
 
         setTimeout(() => {
@@ -596,6 +709,7 @@
       };
 
       renderTierCards();
+      updateCookieStats();
     </script>
   </body>
 </html>

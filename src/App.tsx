@@ -12,6 +12,7 @@ import { AmbientBackground, AmbientEffect } from './components/effects/AmbientBa
 import { CategoryHub } from './components/CategoryHub';
 import { HardwareScalingModal } from './components/HardwareScalingModal';
 import { detectSystemHardware } from './utils/hardwareScaling';
+import { initSettingsPersistence, syncSettingsToCookies } from './utils/cookieStorage';
 
 // Core Powerhouse Tools
 import { AutoPhotoProcessor } from './tools/AutoPhotoProcessor';
@@ -152,6 +153,11 @@ export const App: React.FC = () => {
     }
   });
 
+  // Initialize cookie storage & bidirectional synchronization on boot
+  useEffect(() => {
+    initSettingsPersistence();
+  }, []);
+
   // Sync theme
   useEffect(() => {
     if (isDarkMode) {
@@ -161,7 +167,13 @@ export const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('supertools_theme', 'light');
     }
+    syncSettingsToCookies();
   }, [isDarkMode]);
+
+  // Sync Hardware Scaling & Ambient preferences to cookies
+  useEffect(() => {
+    syncSettingsToCookies();
+  }, [hardwareLevel, ambientEffect]);
 
   // Sync Hash URL navigation
   useEffect(() => {
