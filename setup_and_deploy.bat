@@ -116,6 +116,14 @@ if not exist "firebase.json" (
     echo [OK] firebase.json detected.
 )
 echo.
+echo [*] Listing your available Firebase projects:
+call firebase projects:list
+echo.
+set /p FIREBASE_PROJ="Enter your Firebase Project ID (or press Enter to keep current): "
+if not "!FIREBASE_PROJ!"=="" (
+    call firebase use !FIREBASE_PROJ!
+)
+echo.
 
 :: Step 8: Production Build
 echo [*] Compiling production build (TypeScript + Vite multi-page)...
@@ -129,15 +137,24 @@ if %ERRORLEVEL% neq 0 (
 echo [OK] Production build created in .\dist directory.
 echo.
 
-:: Step 9: Deploy to Firebase Hosting
+:: Step 9: Deploy to Firebase Hosting (Note: Command must be strictly lowercase 'deploy')
 echo [*] Deploying to Firebase Hosting...
 call firebase deploy --only hosting
 if %ERRORLEVEL% neq 0 (
-    color 0C
-    echo [ERROR] Firebase deploy failed! Ensure your Firebase project ID is configured in .firebaserc
-    echo You can associate your project by running: firebase use --add
-    pause
-    exit /b 1
+    echo.
+    echo [!] Standard 'firebase deploy' encountered an issue. Trying via npx fallback...
+    call npx --yes firebase-tools@latest deploy --only hosting
+    if %ERRORLEVEL% neq 0 (
+        color 0C
+        echo.
+        echo [ERROR] Deployment failed!
+        echo Troubleshooting tips:
+        echo 1. Ensure you type 'deploy' in lowercase (NOT 'Deploy' with capital D).
+        echo 2. Run 'firebase use <your-project-id>' to select a valid project.
+        echo 3. To fix corrupted CLI cache, run: npm install -g firebase-tools@latest
+        pause
+        exit /b 1
+    )
 )
 
 echo.

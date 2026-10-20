@@ -51,13 +51,21 @@ npm install
 echo "[*] Verifying Firebase login..."
 firebase login
 
-# Step 7: Build Application
+# Step 7: Select Project
+echo "[*] Listing available Firebase projects:"
+firebase projects:list || true
+read -p "Enter your Firebase Project ID (or press Enter to skip): " proj_id
+if [ -n "$proj_id" ]; then
+    firebase use "$proj_id"
+fi
+
+# Step 8: Build Application
 echo "[*] Compiling production build (TypeScript + Vite)..."
 npm run build
 
-# Step 8: Deploy to Firebase Hosting
+# Step 9: Deploy to Firebase Hosting (Note: lowercase 'deploy')
 echo "[*] Deploying to Firebase Hosting..."
-firebase deploy --only hosting
+firebase deploy --only hosting || npx --yes firebase-tools@latest deploy --only hosting
 
 echo ""
 echo "==============================================================================="
