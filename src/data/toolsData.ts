@@ -2,6 +2,72 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
+    "id": "ai-bg-remover",
+    "name": "AI Background Remover & Saliency Matting",
+    "category": "Media & Studio",
+    "description": "100% client-side instant background removal, edge flood-fill saliency matting, portrait blur, custom color backdrops, and transparent PNG export. Low-RAM 4-6GB safe.",
+    "tags": ["ai", "background remover", "remove bg", "transparent png", "cutout", "saliency", "matting", "low ram"],
+    "icon": "Eraser",
+    "componentId": "ai-bg-remover",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-doc-scanner",
+    "name": "AI Smart Document Scanner & Dewarping",
+    "category": "Files & Documents",
+    "description": "Auto-detects document 4 corners, corrects perspective skew with homography warping, applies Magic B&W paper whitening, and exports multi-page PDF or PNG.",
+    "tags": ["ai", "scanner", "document scanner", "dewarp", "perspective", "camscanner", "clean document", "pdf"],
+    "icon": "FileCheck2",
+    "componentId": "ai-doc-scanner",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-text-summarizer",
+    "name": "AI Document Summarizer & TextRank",
+    "category": "Text & Crypto Forge",
+    "description": "Pure client-side NLP TextRank graph algorithm and concept extractor. Generates instant executive bullet points, reading time, and sentiment analysis with <2MB RAM.",
+    "tags": ["ai", "summarizer", "textrank", "summary", "tldr", "nlp", "key concepts", "sentiment"],
+    "icon": "Sparkles",
+    "componentId": "ai-text-summarizer",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-smart-redactor",
+    "name": "AI Privacy Redactor & Censor Studio",
+    "category": "Text & Crypto Forge",
+    "description": "Automatically scans and masks credit cards, SSNs, phone numbers, emails, passwords, and faces on images and text with blackout bars, pixelation, or blur.",
+    "tags": ["ai", "redact", "censor", "privacy", "pixelate", "blur", "mask", "sanitize"],
+    "icon": "Shield",
+    "componentId": "ai-smart-redactor",
+    "featured": true,
+    "badge": "Privacy"
+  },
+  {
+    "id": "ai-image-upscaler",
+    "name": "AI Super-Resolution & Detail Enhancer",
+    "category": "Media & Studio",
+    "description": "Edge-adaptive 2X and 4X super-resolution upscaler with unsharp masking and artifact suppression. Clean scaling for logos, screenshots, and graphics without RAM spikes.",
+    "tags": ["ai", "upscale", "super resolution", "enhance", "sharpen", "2x", "4x", "unsharp mask"],
+    "icon": "Sparkles",
+    "componentId": "ai-image-upscaler",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-palette-extractor",
+    "name": "AI Visual Palette & Harmony Extractor",
+    "category": "Color & Palette",
+    "description": "Extracts dominant color palettes and harmonies from images using K-Means clustering. Generates HEX/RGB, WCAG contrast scores, and CSS design tokens.",
+    "tags": ["ai", "palette", "colors", "k-means", "harmony", "swatches", "css variables"],
+    "icon": "Palette",
+    "componentId": "ai-palette-extractor",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
     "id": "auto-photo-processor",
     "name": "Automatic Photo Processing Studio",
     "category": "Media & Studio",

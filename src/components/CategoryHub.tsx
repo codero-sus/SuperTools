@@ -30,20 +30,20 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Media & Studio',
     name: 'Automatic Photo & Media Studio',
     icon: 'Wand2',
-    description: '1-click smart auto-enhancement, stream grabber, screen recorder, QR studio & barcode generator.',
+    description: 'AI background remover, 4X detail upscaler, 1-click smart auto-enhancement, audio studio, screen recorder, QR & barcodes.',
     gradient: 'from-indigo-600/20 via-violet-600/10 to-transparent',
     subcategories: [
       {
-        name: 'Auto Photo & Video',
-        toolIds: ['auto-photo-processor', 'video-downloader-helper', 'screen-recorder']
+        name: 'AI Media & Vision Studio',
+        toolIds: ['ai-bg-remover', 'ai-image-upscaler', 'auto-photo-processor']
+      },
+      {
+        name: 'Audio & Stream Grabber',
+        toolIds: ['audio-studio', 'video-downloader-helper', 'screen-recorder']
       },
       {
         name: 'QR & Barcode Utilities',
         toolIds: ['qr-generator', 'qr-scanner', 'barcode-generator']
-      },
-      {
-        name: 'Dimensions & Display',
-        toolIds: ['image-resizer', 'aspect-ratio-calc', 'screen-detector']
       }
     ]
   },
@@ -52,16 +52,16 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Files & Documents',
     name: 'Universal Files & Documents',
     icon: 'FileArchive',
-    description: 'Multi-format converter (XLSX, CSV, PDF, WebP, ICO), high-precision OCR, and images to PDF.',
+    description: 'Multi-format converter (XLSX, CSV, PDF, WebP, ICO), AI perspective document scanner, and deep LSTM neural OCR.',
     gradient: 'from-emerald-600/20 via-teal-600/10 to-transparent',
     subcategories: [
       {
-        name: 'File & Format Conversion',
-        toolIds: ['universal-file-converter', 'file-transformer']
+        name: 'AI Scanner & Neural OCR',
+        toolIds: ['ocr-tool', 'ai-doc-scanner']
       },
       {
-        name: 'Optical Character Recognition',
-        toolIds: ['ocr-tool']
+        name: 'Universal Format Conversion',
+        toolIds: ['universal-file-converter', 'file-transformer']
       }
     ]
   },
@@ -70,16 +70,16 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Text & Crypto Forge',
     name: 'Text & Crypto Security Forge',
     icon: 'Sparkles',
-    description: '1337 Leet Speak, Base64, Hex, AES encryption, steganography, passwords, and RSA key pairs.',
+    description: 'AI TextRank document summarizer, smart privacy redactor, 1337 Leet Speak, Base64, Hex, AES encryption, and RSA key pairs.',
     gradient: 'from-amber-600/20 via-orange-600/10 to-transparent',
     subcategories: [
       {
-        name: 'Unified Text Transformation',
-        toolIds: ['unified-text-forge', 'text-diff', 'lorem-ipsum']
+        name: 'AI Text & Privacy Forge',
+        toolIds: ['ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
       },
       {
-        name: 'Privacy & Security Vault',
-        toolIds: ['privacy-vault', 'password-generator', 'password-strength']
+        name: 'Text Transformation & Diff',
+        toolIds: ['unified-text-forge', 'text-diff', 'lorem-ipsum']
       },
       {
         name: 'Hashes & Authenticator',
@@ -172,12 +172,12 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Color & Palette',
     name: 'Color & Accessibility Studio',
     icon: 'Palette',
-    description: 'HEX/RGB/HSL/CMYK color converter, WCAG contrast checker, CSS gradients, and tints/shades generator.',
+    description: 'AI K-Means image palette extractor, HEX/RGB/HSL/CMYK color converter, WCAG contrast checker, CSS gradients, and tints/shades.',
     gradient: 'from-fuchsia-600/20 via-purple-600/10 to-transparent',
     subcategories: [
       {
-        name: 'Color Palettes & Formats',
-        toolIds: ['color-converter', 'contrast-checker']
+        name: 'AI Palette & Vision Extractor',
+        toolIds: ['ai-palette-extractor', 'color-converter', 'contrast-checker']
       },
       {
         name: 'Gradients & Scales',

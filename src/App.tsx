@@ -21,6 +21,12 @@ import { VideoDownloaderHelper } from './tools/VideoDownloaderHelper';
 import { PrivacyVault } from './tools/PrivacyVault';
 import { ScreenRecorder } from './tools/ScreenRecorder';
 import { AudioStudio } from './tools/AudioStudio';
+import { AiBackgroundRemover } from './tools/AiBackgroundRemover';
+import { AiDocScanner } from './tools/AiDocScanner';
+import { AiTextSummarizer } from './tools/AiTextSummarizer';
+import { AiSmartRedactor } from './tools/AiSmartRedactor';
+import { AiImageUpscaler } from './tools/AiImageUpscaler';
+import { AiPaletteExtractor } from './tools/AiPaletteExtractor';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -215,6 +221,12 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
+    if (id === 'ai-bg-remover') return <AiBackgroundRemover />;
+    if (id === 'ai-doc-scanner') return <AiDocScanner />;
+    if (id === 'ai-text-summarizer') return <AiTextSummarizer />;
+    if (id === 'ai-smart-redactor') return <AiSmartRedactor />;
+    if (id === 'ai-image-upscaler') return <AiImageUpscaler />;
+    if (id === 'ai-palette-extractor') return <AiPaletteExtractor />;
     if (id === 'auto-photo-processor') return <AutoPhotoProcessor />;
     if (id === 'universal-file-converter') return <UniversalFileConverter />;
     if (id === 'unified-text-forge') return <UnifiedTextForge />;

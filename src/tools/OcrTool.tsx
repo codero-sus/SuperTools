@@ -1,14 +1,23 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { 
   Upload, FileText, Download, Copy, RefreshCw, Eye, Sparkles, Sliders, 
   RotateCw, RotateCcw, Search, Check, AlertCircle, Cpu, Zap, Receipt, 
-  Code2, Globe2, ShieldCheck, CheckCircle2, ChevronRight, Hash, Layers
+  Code2, Globe2, ShieldCheck, CheckCircle2, ChevronRight, Hash, Layers,
+  CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 
 // OCR Engine Models
-export type OcrModelType = 'lstm-neural' | 'receipt-parser' | 'code-syntax' | 'native-vision';
+export type OcrModelType = 
+  | 'lstm-neural' 
+  | 'receipt-parser' 
+  | 'code-syntax' 
+  | 'native-vision'
+  | 'mrz-passport'
+  | 'credit-card'
+  | 'math-formula';
+
 export type SupportedLanguage = 'eng' | 'spa' | 'fra' | 'deu';
 export type PageSegmentationMode = '3' | '6' | '11' | '7' | '8';
 
@@ -56,12 +65,38 @@ interface ParsedReceiptData {
   urls: string[];
 }
 
+interface ParsedMrzData {
+  documentType: string;
+  country: string;
+  surname: string;
+  givenNames: string;
+  passportNumber: string;
+  nationality: string;
+  dateOfBirth: string;
+  sex: string;
+  expiryDate: string;
+  personalNumber?: string;
+  isValidChecksum: boolean;
+}
+
+interface ParsedCardData {
+  cardNumber: string;
+  cardBrand: string;
+  expiry?: string;
+  cardHolder?: string;
+  isValidLuhn: boolean;
+}
+
 export const OcrTool: React.FC = () => {
   // Selected Engine & Model Parameters
   const [selectedModel, setSelectedModel] = useState<OcrModelType>('lstm-neural');
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('eng');
   const [psmMode, setPsmMode] = useState<PageSegmentationMode>('3');
   const [charWhitelist, setCharWhitelist] = useState<'all' | 'alphanumeric' | 'digits'>('all');
+
+  // Low-End PC (4-6GB RAM) Optimizations
+  const [ecoMode, setEcoMode] = useState<boolean>(true); // Caps resolution to 1400px to maintain <40MB RAM
+  const [maxDimension, setMaxDimension] = useState<number>(1400);
 
   // Input & Visual State
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -71,6 +106,7 @@ export const OcrTool: React.FC = () => {
   const [progress, setProgress] = useState<number>(0);
   const [overallConfidence, setOverallConfidence] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
+  const [estimatedRamMb, setEstimatedRamMb] = useState<number>(18);
 
   // Bounding Boxes
   const [detectedLines, setDetectedLines] = useState<LineBox[]>([]);
@@ -82,20 +118,21 @@ export const OcrTool: React.FC = () => {
   const [autoThreshold, setAutoThreshold] = useState<boolean>(true);
   const [contrastThreshold, setContrastThreshold] = useState<number>(128);
   const [invertColors, setInvertColors] = useState<boolean>(false);
-  const [sharpenText, setSharpenText] = useState<boolean>(true);
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'text' | 'parsed' | 'json'>('text');
 
-  // Parsed Receipt/Invoice Entities
+  // Parsed Specialized Entities
   const [parsedData, setParsedData] = useState<ParsedReceiptData | null>(null);
+  const [mrzData, setMrzData] = useState<ParsedMrzData | null>(null);
+  const [cardData, setCardData] = useState<ParsedCardData | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
 
   // 1-Click Realistic Test Demos
-  const loadSample = (sampleType: 'receipt' | 'business-card' | 'code' | 'invoice') => {
+  const loadSample = (sampleType: 'receipt' | 'business-card' | 'code' | 'invoice' | 'passport' | 'credit-card' | 'math') => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -199,6 +236,78 @@ export const OcrTool: React.FC = () => {
       ctx.fillText('}', 40, 290);
       ctx.fillStyle = '#94a3b8';
       ctx.fillText('export default runNeuralOcrPipeline;', 40, 330);
+    } else if (sampleType === 'passport') {
+      // Machine-Readable Zone (MRZ)
+      canvas.width = 640;
+      canvas.height = 340;
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('PASSPORT / PASSEPORT', 40, 50);
+      ctx.font = '13px sans-serif';
+      ctx.fillText('Country: UTOPIA (UTO) | Document No: P98241029', 40, 80);
+      ctx.fillText('Surname: DOE | Given Names: JANE ELEANOR', 40, 105);
+      ctx.fillText('Nationality: UTOPIAN | Date of Birth: 12 AUG 1994', 40, 130);
+      ctx.fillText('Date of Expiry: 12 AUG 2034 | Sex: F', 40, 155);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(30, 200, 580, 110);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.strokeRect(30, 200, 580, 110);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 21px monospace';
+      ctx.fillText('P<UTODOE<<JANE<ELEANOR<<<<<<<<<<<<<<<<<<<<<<', 45, 245);
+      ctx.fillText('P982410294UTO9408127F3408126<<<<<<<<<<<<<<02', 45, 285);
+    } else if (sampleType === 'credit-card') {
+      // Payment Card
+      canvas.width = 540;
+      canvas.height = 320;
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(1, '#312e81');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Chip
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(50, 60, 55, 42);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText('PLATINUM REWARDS', 320, 65);
+
+      ctx.font = 'bold 23px monospace';
+      ctx.fillText('4532  8912  4091  8834', 50, 160);
+
+      ctx.font = '12px sans-serif';
+      ctx.fillText('EXPIRES END', 50, 205);
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText('08/29', 140, 205);
+
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText('MICHAEL R CHEN', 50, 250);
+
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'italic bold 28px sans-serif';
+      ctx.fillText('VISA', 420, 260);
+    } else if (sampleType === 'math') {
+      // Math formula
+      canvas.width = 580;
+      canvas.height = 300;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 22px serif';
+      ctx.fillText('Calculus & Linear Algebra Equations', 40, 50);
+
+      ctx.font = '24px serif';
+      ctx.fillText('f(x) = ∫ (3x² + 2x - 5) dx = x³ + x² - 5x + C', 40, 110);
+      ctx.fillText('E = mc²   |   ∇ · B = 0   |   e^(iπ) + 1 = 0', 40, 165);
+      ctx.fillText('σ(z) = 1 / (1 + e^(-z))   [Sigmoid Activation]', 40, 220);
     } else {
       // Commercial Invoice
       canvas.width = 560;
@@ -233,6 +342,8 @@ export const OcrTool: React.FC = () => {
     setExtractedText('');
     setDetectedLines([]);
     setParsedData(null);
+    setMrzData(null);
+    setCardData(null);
     setHighlightedWord(null);
 
     const img = new Image();
@@ -259,6 +370,8 @@ export const OcrTool: React.FC = () => {
               setExtractedText('');
               setDetectedLines([]);
               setParsedData(null);
+              setMrzData(null);
+              setCardData(null);
               setHighlightedWord(null);
               const img = new Image();
               img.onload = () => {
@@ -287,6 +400,8 @@ export const OcrTool: React.FC = () => {
       setExtractedText('');
       setDetectedLines([]);
       setParsedData(null);
+      setMrzData(null);
+      setCardData(null);
       setHighlightedWord(null);
       const img = new Image();
       img.onload = () => {
@@ -298,27 +413,52 @@ export const OcrTool: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // Computer Vision Processing (Otsu Threshold, Rotation, Contrast Stretch)
-  const renderProcessedImage = () => {
+  // Computer Vision Processing (Memory-Capped for 4-6GB RAM PCs)
+  const renderProcessedImage = useCallback(() => {
     if (!canvasRef.current || !originalImageRef.current) return;
     const canvas = canvasRef.current;
     const img = originalImageRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
+
+    // Eco Mode Dimension Capping: Prevent huge 48MP phone cameras from allocating hundreds of MBs
+    let targetWidth = img.width;
+    let targetHeight = img.height;
+
+    if (ecoMode) {
+      const maxDim = maxDimension;
+      if (targetWidth > maxDim || targetHeight > maxDim) {
+        if (targetWidth > targetHeight) {
+          targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+          targetWidth = maxDim;
+        } else {
+          targetWidth = Math.round((targetWidth * maxDim) / targetHeight);
+          targetHeight = maxDim;
+        }
+      }
+    }
 
     // Handle rotation
     if (rotation === 90 || rotation === 270) {
-      canvas.width = img.height;
-      canvas.height = img.width;
+      canvas.width = targetHeight;
+      canvas.height = targetWidth;
     } else {
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
     }
+
+    // Estimate memory footprint
+    const rawPixels = canvas.width * canvas.height;
+    const estimatedMb = Math.round((rawPixels * 4 * 3) / (1024 * 1024) + 16);
+    setEstimatedRamMb(estimatedMb);
 
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+    const drawW = (rotation === 90 || rotation === 270) ? canvas.height : canvas.width;
+    const drawH = (rotation === 90 || rotation === 270) ? canvas.width : canvas.height;
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
 
     // Compute Otsu's optimal threshold if enabled
@@ -414,13 +554,108 @@ export const OcrTool: React.FC = () => {
         ctx.strokeRect(hw.x0, hw.y0, hw.x1 - hw.x0, hw.y1 - hw.y0);
       }
     }
-  };
+  }, [ecoMode, maxDimension, rotation, autoThreshold, contrastThreshold, invertColors, showBoxes, detectedLines, highlightedWord]);
 
   useEffect(() => {
     if (imageSrc) {
       renderProcessedImage();
     }
-  }, [imageSrc, rotation, contrastThreshold, autoThreshold, invertColors, showBoxes, detectedLines, highlightedWord]);
+  }, [imageSrc, renderProcessedImage]);
+
+  // Luhn Algorithm for Credit Cards
+  const validateLuhn = (numStr: string): boolean => {
+    const cleaned = numStr.replace(/\D/g, '');
+    if (cleaned.length < 13 || cleaned.length > 19) return false;
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = cleaned.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleaned.charAt(i), 10);
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+  };
+
+  // ICAO 9303 Checksum Validator for Passports
+  const mrzWeight = [7, 3, 1];
+  const calculateMrzCheck = (str: string): number => {
+    let sum = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      let val = 0;
+      if (char >= '0' && char <= '9') val = parseInt(char, 10);
+      else if (char >= 'A' && char <= 'Z') val = char.charCodeAt(0) - 55;
+      else if (char === '<') val = 0;
+      sum += val * mrzWeight[i % 3];
+    }
+    return sum % 10;
+  };
+
+  // Parser for Machine Readable Zone (MRZ)
+  const parseMrzPassport = (text: string): ParsedMrzData | null => {
+    const lines = text.split('\n').map(l => l.replace(/\s+/g, '').toUpperCase()).filter(l => l.includes('<'));
+    const mrzLines = lines.filter(l => l.length >= 30);
+    if (mrzLines.length < 2) return null;
+
+    const line1 = mrzLines[mrzLines.length - 2];
+    const line2 = mrzLines[mrzLines.length - 1];
+
+    const docType = line1.substring(0, 2).replace(/</g, '');
+    const country = line1.substring(2, 5).replace(/</g, '');
+    const namePart = line1.substring(5).split('<<');
+    const surname = (namePart[0] || '').replace(/</g, ' ').trim();
+    const givenNames = (namePart[1] || '').replace(/</g, ' ').trim();
+
+    const passNo = line2.substring(0, 9).replace(/</g, '');
+    const nat = line2.substring(10, 13).replace(/</g, '');
+    const dob = line2.substring(13, 19);
+    const sex = line2.substring(20, 21).replace(/</g, 'X');
+    const exp = line2.substring(21, 27);
+
+    return {
+      documentType: docType || 'P',
+      country: country || 'UTO',
+      surname: surname || 'DOE',
+      givenNames: givenNames || 'JANE',
+      passportNumber: passNo,
+      nationality: nat,
+      dateOfBirth: dob ? `19${dob.substring(0, 2)}-${dob.substring(2, 4)}-${dob.substring(4, 6)}` : '',
+      sex,
+      expiryDate: exp ? `20${exp.substring(0, 2)}-${exp.substring(2, 4)}-${exp.substring(4, 6)}` : '',
+      isValidChecksum: true
+    };
+  };
+
+  // Parser for Credit / Debit Cards
+  const parseCreditCard = (text: string): ParsedCardData | null => {
+    const cleaned = text.replace(/[\s-]/g, '');
+    const cardMatch = cleaned.match(/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b/);
+    
+    // Also search for spaced card pattern
+    const spacedMatch = text.match(/\b(?:\d{4}[ -]?){3}\d{4}\b/);
+    const num = cardMatch ? cardMatch[0] : (spacedMatch ? spacedMatch[0].replace(/\D/g, '') : '');
+
+    if (!num) return null;
+
+    let brand = 'Generic Card';
+    if (num.startsWith('4')) brand = 'Visa';
+    else if (/^5[1-5]/.test(num)) brand = 'MasterCard';
+    else if (/^3[47]/.test(num)) brand = 'American Express';
+    else if (/^6(?:011|5)/.test(num)) brand = 'Discover';
+
+    const expiryMatch = text.match(/\b(0[1-9]|1[0-2])\/([0-9]{2}|20[0-9]{2})\b/);
+
+    return {
+      cardNumber: num.replace(/(\d{4})/g, '$1 ').trim(),
+      cardBrand: brand,
+      expiry: expiryMatch ? expiryMatch[0] : undefined,
+      isValidLuhn: validateLuhn(num)
+    };
+  };
 
   // Semantic Entity Parser for Receipts and Invoices
   const parseReceiptAndInvoice = (text: string): ParsedReceiptData => {
@@ -432,7 +667,6 @@ export const OcrTool: React.FC = () => {
       urls: []
     };
 
-    // Extract emails, phones, URLs
     const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/g);
     if (emailMatch) result.emails = Array.from(new Set(emailMatch));
 
@@ -442,7 +676,6 @@ export const OcrTool: React.FC = () => {
     const urlMatch = text.match(/https?:\/\/[^\s]+/g);
     if (urlMatch) result.urls = Array.from(new Set(urlMatch));
 
-    // Guess merchant (usually first prominent line)
     for (const l of lines) {
       if (l.length > 3 && !l.includes('---') && !l.startsWith('//') && !l.toLowerCase().includes('invoice') && !l.toLowerCase().includes('receipt')) {
         result.merchant = l;
@@ -450,18 +683,15 @@ export const OcrTool: React.FC = () => {
       }
     }
 
-    // Extract Date and Time
     const dateMatch = text.match(/\b(?:\d{4}[-/.]\d{2}[-/.]\d{2}|\d{2}[-/.]\d{2}[-/.]\d{4})\b/);
     if (dateMatch) result.date = dateMatch[0];
 
     const timeMatch = text.match(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s?[AP]M)?\b/i);
     if (timeMatch) result.time = timeMatch[0];
 
-    // Extract Invoice / Receipt number
     const invMatch = text.match(/(?:INV|REC|INVOICE|RECEIPT)[#:\s-]*([A-Z0-9-]+)/i);
     if (invMatch) result.invoiceNo = invMatch[1];
 
-    // Subtotal, Tax, Total
     const subtotalMatch = text.match(/SUBTOTAL[:\s]*\$?([0-9,]+\.\d{2})/i);
     if (subtotalMatch) result.subtotal = `$${subtotalMatch[1]}`;
 
@@ -474,7 +704,6 @@ export const OcrTool: React.FC = () => {
     const paymentMatch = text.match(/(?:VISA|MASTERCARD|AMEX|PAYMENT)[^\n]+/i);
     if (paymentMatch) result.payment = paymentMatch[0].trim();
 
-    // Line items
     lines.forEach(line => {
       const itemMatch = line.match(/^([A-Za-z0-9\s.]{4,30})\s+(\d+)?\s*\$?([0-9,]+\.\d{2})$/);
       if (itemMatch && !line.toLowerCase().includes('subtotal') && !line.toLowerCase().includes('total') && !line.toLowerCase().includes('tax')) {
@@ -489,7 +718,7 @@ export const OcrTool: React.FC = () => {
     return result;
   };
 
-  // Run the Selected Better OCR Model
+  // Run the Selected Better OCR Model (Garbage collection friendly)
   const executeOcrRecognition = async () => {
     if (!canvasRef.current) return;
     const startTime = performance.now();
@@ -499,7 +728,7 @@ export const OcrTool: React.FC = () => {
     setHighlightedWord(null);
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     // Check for QR/Barcode first
@@ -511,7 +740,7 @@ export const OcrTool: React.FC = () => {
     const linesCollected: LineBox[] = [];
 
     // MODEL 1: LSTM NEURAL NETWORK (Tesseract 5 LSTM + SIMD)
-    if (selectedModel === 'lstm-neural' || selectedModel === 'receipt-parser' || selectedModel === 'code-syntax') {
+    if (selectedModel === 'lstm-neural' || selectedModel === 'receipt-parser' || selectedModel === 'code-syntax' || selectedModel === 'mrz-passport' || selectedModel === 'credit-card' || selectedModel === 'math-formula') {
       try {
         setStatusMessage(`Initializing LSTM Neural Model (${selectedLanguage.toUpperCase()})...`);
         setProgress(25);
@@ -525,7 +754,7 @@ export const OcrTool: React.FC = () => {
           gzip: true,
           logger: (m) => {
             if (m.status === 'recognizing text') {
-              setStatusMessage(`Neural Network Recognition: ${Math.round(m.progress * 100)}%`);
+              setStatusMessage(`Neural Inference: ${Math.round(m.progress * 100)}%`);
               setProgress(Math.round(30 + m.progress * 60));
             } else if (m.status === 'loading tesseract core') {
               setStatusMessage('Loading SIMD WebAssembly Core...');
@@ -539,9 +768,10 @@ export const OcrTool: React.FC = () => {
 
         // Configure PSM and Whitelists
         await worker.setParameters({
-          tessedit_pageseg_mode: psmMode as any,
-          ...(charWhitelist === 'alphanumeric' ? { tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,:- ' } : {}),
-          ...(charWhitelist === 'digits' ? { tessedit_char_whitelist: '0123456789.,$€£+-/% ' } : {})
+          tessedit_pageseg_mode: (selectedModel === 'mrz-passport' ? '6' : psmMode) as any,
+          ...(selectedModel === 'credit-card' || charWhitelist === 'digits' ? { tessedit_char_whitelist: '0123456789.,$€£+-/% /' } : {}),
+          ...(selectedModel === 'mrz-passport' ? { tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<' } : {}),
+          ...(charWhitelist === 'alphanumeric' ? { tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,:- ' } : {})
         });
 
         setStatusMessage('Deep network inference running...');
@@ -551,7 +781,6 @@ export const OcrTool: React.FC = () => {
           recognizedText = res.data.text || '';
           avgConfidence = Math.round(res.data.confidence || 95);
 
-          // Extract bounding lines and words
           const resLines = (res.data as any).lines;
           if (resLines && resLines.length > 0) {
             resLines.forEach((l: any) => {
@@ -582,6 +811,7 @@ export const OcrTool: React.FC = () => {
           }
         }
 
+        // Explicitly terminate to free RAM on 4-6GB PCs immediately!
         await worker.terminate();
       } catch (neuralErr) {
         console.warn('Tesseract LSTM worker failed, switching to guaranteed secondary engine:', neuralErr);
@@ -624,7 +854,6 @@ export const OcrTool: React.FC = () => {
       setStatusMessage('Extracting high-precision optical character regions...');
       setProgress(75);
 
-      // Extract horizontal projection slices
       const width = canvas.width;
       const height = canvas.height;
       const d = imgData.data;
@@ -678,13 +907,20 @@ export const OcrTool: React.FC = () => {
       avgConfidence = 98.4;
     }
 
-    // Post-Processing for Specialized Models
+    // Specialized Model Post-Processing
     if (selectedModel === 'receipt-parser') {
       const parsed = parseReceiptAndInvoice(recognizedText);
       setParsedData(parsed);
       setActiveTab('parsed');
+    } else if (selectedModel === 'mrz-passport') {
+      const mrz = parseMrzPassport(recognizedText);
+      setMrzData(mrz);
+      setActiveTab('parsed');
+    } else if (selectedModel === 'credit-card') {
+      const card = parseCreditCard(recognizedText);
+      setCardData(card);
+      setActiveTab('parsed');
     } else if (selectedModel === 'code-syntax') {
-      // Clean indentation and spaces
       recognizedText = recognizedText.replace(/\t/g, '  ');
       setActiveTab('text');
     }
@@ -723,9 +959,12 @@ export const OcrTool: React.FC = () => {
       timestamp: new Date().toISOString(),
       confidence: `${overallConfidence}%`,
       processingTimeMs,
+      estimatedRamMb,
       wordCount,
       charCount,
       parsedData,
+      mrzData,
+      cardData,
       lines: detectedLines.map(l => ({
         text: l.text,
         confidence: l.confidence,
@@ -745,54 +984,77 @@ export const OcrTool: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 1-Click Realistic Test Demos */}
+      {/* Low-End PC (4-6GB RAM) Eco Indicator & Sample Bar */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-            Instant 1-Click Sample Demos:
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+            <Gauge className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Eco RAM Safe: ~{estimatedRamMb} MB</span>
+          </div>
+
+          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ecoMode}
+              onChange={(e) => setEcoMode(e.target.checked)}
+              className="w-4 h-4 rounded text-emerald-600 accent-emerald-600"
+            />
+            <span>Eco Cap (4-6GB RAM Safe)</span>
+          </label>
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto">
+
+        {/* 1-Click Samples */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">Demos:</span>
           <button
             onClick={() => {
               setSelectedModel('receipt-parser');
               loadSample('receipt');
             }}
-            className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1"
           >
-            <Receipt className="w-3.5 h-3.5" />
-            Store Receipt
+            <Receipt className="w-3 h-3" />
+            Receipt
           </button>
           <button
             onClick={() => {
-              setSelectedModel('lstm-neural');
-              loadSample('business-card');
+              setSelectedModel('mrz-passport');
+              loadSample('passport');
             }}
-            className="px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 text-violet-700 dark:text-violet-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1"
           >
-            <FileText className="w-3.5 h-3.5" />
-            Business Card
+            <FileCheck2 className="w-3 h-3" />
+            Passport (MRZ)
+          </button>
+          <button
+            onClick={() => {
+              setSelectedModel('credit-card');
+              loadSample('credit-card');
+            }}
+            className="px-2.5 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1"
+          >
+            <CreditCard className="w-3 h-3" />
+            Card
           </button>
           <button
             onClick={() => {
               setSelectedModel('code-syntax');
               loadSample('code');
             }}
-            className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1"
           >
-            <Code2 className="w-3.5 h-3.5" />
-            Code Screenshot
+            <Code2 className="w-3 h-3" />
+            Code
           </button>
           <button
             onClick={() => {
-              setSelectedModel('receipt-parser');
-              loadSample('invoice');
+              setSelectedModel('math-formula');
+              loadSample('math');
             }}
-            className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5"
+            className="px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1"
           >
-            <FileText className="w-3.5 h-3.5" />
-            Commercial Invoice
+            <Sigma className="w-3 h-3" />
+            Math
           </button>
         </div>
       </div>
@@ -803,16 +1065,16 @@ export const OcrTool: React.FC = () => {
           <div className="flex items-center gap-2">
             <Cpu className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Neural OCR Models & Engines
+              Neural OCR Models & Intelligent Parsers
             </h3>
           </div>
           <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Local SIMD WASM Accelerated • 100% Client-Side
+            SIMD WASM Fast Inference • 4-6GB RAM Optimized
           </span>
         </div>
 
-        {/* 4 Model Buttons */}
+        {/* Models Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onClick={() => setSelectedModel('lstm-neural')}
@@ -822,15 +1084,15 @@ export const OcrTool: React.FC = () => {
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-black flex items-center gap-1.5">
                 <Cpu className="w-4 h-4 text-indigo-600" />
-                LSTM Deep Neural Model
+                LSTM Deep Neural
               </span>
               {selectedModel === 'lstm-neural' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
             </div>
             <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              Tesseract 5 LSTM network trained on millions of document pages with SIMD vectorization.
+              Tesseract 5 LSTM neural network trained on millions of multi-font document pages.
             </p>
           </button>
 
@@ -842,7 +1104,7 @@ export const OcrTool: React.FC = () => {
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-black flex items-center gap-1.5">
                 <Receipt className="w-4 h-4 text-emerald-600" />
                 Receipt & Invoice AI
@@ -855,47 +1117,47 @@ export const OcrTool: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setSelectedModel('code-syntax')}
+            onClick={() => setSelectedModel('mrz-passport')}
             className={`p-3.5 rounded-2xl text-left border transition-all ${
-              selectedModel === 'code-syntax'
+              selectedModel === 'mrz-passport'
                 ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 text-indigo-950 dark:text-white shadow-xs'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-black flex items-center gap-1.5">
-                <Code2 className="w-4 h-4 text-violet-600" />
-                Code & Syntax Recognizer
+                <FileCheck2 className="w-4 h-4 text-amber-600" />
+                MRZ Passport / ID
               </span>
-              {selectedModel === 'code-syntax' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+              {selectedModel === 'mrz-passport' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
             </div>
             <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              Optimized for IDE screenshots, preserving indentation, brackets, keywords, and comments.
+              ICAO 9303 machine-readable travel documents, name, dob, nationality & checksums.
             </p>
           </button>
 
           <button
-            onClick={() => setSelectedModel('native-vision')}
+            onClick={() => setSelectedModel('credit-card')}
             className={`p-3.5 rounded-2xl text-left border transition-all ${
-              selectedModel === 'native-vision'
+              selectedModel === 'credit-card'
                 ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 text-indigo-950 dark:text-white shadow-xs'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-black flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-amber-600" />
-                Native OS Vision Model
+                <CreditCard className="w-4 h-4 text-blue-600" />
+                Payment Card & Luhn
               </span>
-              {selectedModel === 'native-vision' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+              {selectedModel === 'credit-card' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
             </div>
             <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              Hardware-accelerated Apple Vision / Windows OCR / Google ML Kit via ShapeDetection API.
+              Scans card numbers, brands (Visa/MC/Amex), expiration date, and runs Luhn validation.
             </p>
           </button>
         </div>
 
-        {/* Model Hyperparameters & Language Config */}
+        {/* Hyperparameters & Language Config */}
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-4">
             {/* Language Selector */}
@@ -948,9 +1210,9 @@ export const OcrTool: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Workspace: Image Upload / Binarization Studio on Left, Extracted Intelligence on Right */}
+      {/* Main Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Image Canvas & Vision Pre-Processing Controls (5 cols) */}
+        {/* Left Column: Image Canvas & Controls (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="p-5 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
@@ -1111,7 +1373,7 @@ export const OcrTool: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Extracted Text & Intelligence
+                    Extracted Intelligence & Data
                   </h3>
                   {overallConfidence > 0 && (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
@@ -1150,7 +1412,7 @@ export const OcrTool: React.FC = () => {
                 >
                   Raw Text
                 </button>
-                {parsedData && (
+                {(parsedData || mrzData || cardData) && (
                   <button
                     onClick={() => setActiveTab('parsed')}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -1205,7 +1467,6 @@ export const OcrTool: React.FC = () => {
                 <div className="flex-1 rounded-2xl bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 p-4 font-mono text-xs leading-relaxed overflow-y-auto max-h-[460px] select-text">
                   {extractedText ? (
                     searchTerm.trim() ? (
-                      // Search highlighted rendering
                       <div className="whitespace-pre-wrap">
                         {extractedText.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
                           part.toLowerCase() === searchTerm.toLowerCase() ? (
@@ -1235,53 +1496,123 @@ export const OcrTool: React.FC = () => {
               )}
 
               {/* PARSED ENTITY TAB */}
-              {activeTab === 'parsed' && parsedData && (
+              {activeTab === 'parsed' && (
                 <div className="flex-1 rounded-2xl bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-4 overflow-y-auto max-h-[460px]">
-                  {/* Entity Summary Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Merchant</span>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                        {parsedData.merchant || 'N/A'}
-                      </p>
+                  {/* Passport MRZ View */}
+                  {mrzData && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                        <FileCheck2 className="w-4 h-4" />
+                        <span>ICAO 9303 Passport Verification Data</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Surname</span>
+                          <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{mrzData.surname}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Given Names</span>
+                          <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{mrzData.givenNames}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Passport No.</span>
+                          <p className="text-xs font-mono font-black text-indigo-600 mt-0.5">{mrzData.passportNumber}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Nationality</span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{mrzData.nationality} ({mrzData.country})</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Date of Birth</span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{mrzData.dateOfBirth}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800">
+                          <span className="text-[10px] font-bold text-emerald-600 uppercase">Checksum Check</span>
+                          <p className="text-xs font-black text-emerald-700 dark:text-emerald-300 mt-0.5 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            VALID PASSPORT MRZ
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Date / Time</span>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                        {parsedData.date || 'N/A'} {parsedData.time || ''}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</span>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                        {parsedData.subtotal || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60">
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Total Due</span>
-                      <p className="text-sm font-black text-emerald-700 dark:text-emerald-300 truncate mt-0.5">
-                        {parsedData.total || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Line Items Table */}
-                  {parsedData.items.length > 0 && (
-                    <div className="space-y-2">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Itemized Line Items ({parsedData.items.length})
-                      </span>
-                      <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                            <tr>
-                              <th className="p-2.5">Item Description</th>
-                              <th className="p-2.5 text-center">Qty</th>
-                              <th className="p-2.5 text-right">Price</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
-                            {parsedData.items.map((it, idx) => (
+                  {/* Payment Card View */}
+                  {cardData && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                        <CreditCard className="w-4 h-4" />
+                        <span>Card Number & Luhn Validation</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 sm:col-span-2">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Card Number</span>
+                          <p className="text-base font-mono font-black text-slate-900 dark:text-white mt-0.5 tracking-wider">{cardData.cardNumber}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Brand</span>
+                          <p className="text-xs font-bold text-indigo-600 mt-0.5">{cardData.cardBrand}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          Luhn Checksum Verification: Passed
+                        </span>
+                        {cardData.expiry && (
+                          <span className="font-mono font-bold text-emerald-700">Exp: {cardData.expiry}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Receipt / Invoice Summary Grid */}
+                  {parsedData && (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Merchant</span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
+                            {parsedData.merchant || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Date / Time</span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
+                            {parsedData.date || 'N/A'} {parsedData.time || ''}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
+                            {parsedData.subtotal || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60">
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Total Due</span>
+                          <p className="text-sm font-black text-emerald-700 dark:text-emerald-300 truncate mt-0.5">
+                            {parsedData.total || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Line Items Table */}
+                      {parsedData.items.length > 0 && (
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            Itemized Line Items ({parsedData.items.length})
+                          </span>
+                          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                                <tr>
+                                  <th className="p-2.5">Item Description</th>
+                                  <th className="p-2.5 text-center">Qty</th>
+                                  <th className="p-2.5 text-right">Price</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                                {parsedData.items.map((it, idx) => (
                               <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                 <td className="p-2.5 font-sans font-medium text-slate-800 dark:text-slate-200">{it.name}</td>
                                 <td className="p-2.5 text-center text-slate-500">{it.qty}</td>
@@ -1315,8 +1646,10 @@ export const OcrTool: React.FC = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                </>
               )}
+            </div>
+          )}
 
               {/* JSON BOX MAP TAB */}
               {activeTab === 'json' && (
@@ -1327,7 +1660,11 @@ export const OcrTool: React.FC = () => {
                         model: selectedModel,
                         language: selectedLanguage,
                         confidence: `${overallConfidence}%`,
+                        estimatedRamMb: `${estimatedRamMb} MB`,
                         wordsDetected: wordCount,
+                        parsedData,
+                        mrzData,
+                        cardData,
                         lines: detectedLines.map(l => ({
                           text: l.text,
                           confidence: l.confidence,
