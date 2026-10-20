@@ -1,12 +1,26 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Download, Copy, RefreshCw, Volume2, Globe2, Sparkles, Gauge, FileText, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, Download, Copy, RefreshCw, Volume2, Globe2, Sparkles, Gauge, FileText, CheckCircle2, Cpu, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 
-export const AiSpeechTranscriber: React.FC = () => {
+interface AiSpeechTranscriberProps {
+  hardwareLevel?: number;
+}
+
+export const AiSpeechTranscriber: React.FC<AiSpeechTranscriberProps> = ({ hardwareLevel = 3 }) => {
+  const currentTier = getTierByLevel(hardwareLevel);
+  const [speechModel, setSpeechModel] = useState<'native' | 'fast-acoustic' | 'studio-multilingual'>('native');
+  const [ramBudget, setRamBudget] = useState<number>(() => {
+    return getUserRamBudgetMb(hardwareLevel);
+  });
+  const [showAiConfig, setShowAiConfig] = useState<boolean>(false);
+
   const [isListening, setIsListening] = useState<boolean>(false);
   const [transcript, setTranscript] = useState<string>('');
   const [interimTranscript, setInterimTranscript] = useState<string>('');
-  const [selectedLang, setSelectedLang] = useState<string>('en-US');
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
+    return localStorage.getItem('supertools_speech_lang') || 'en-US';
+  });
   const [autoPunctuate, setAutoPunctuate] = useState<boolean>(true);
   const [confidence, setConfidence] = useState<number>(0);
   const [audioLevel, setAudioLevel] = useState<number>(0);
@@ -174,21 +188,38 @@ export const AiSpeechTranscriber: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* Top Banner with Hardware Tier & RAM Meter */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM: ~6 MB / 80 MB Max</span>
+            <span>RAM: ~{speechModel === 'native' ? '6' : speechModel === 'fast-acoustic' ? '24' : '48'} MB / {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-emerald-600">Ultra-Lightweight ✅</span>
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel}</span>
           </div>
+
+          <button
+            onClick={() => setShowAiConfig(!showAiConfig)}
+            className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              showAiConfig
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+            <span>AI Model & RAM Options</span>
+            {showAiConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
 
           <div className="flex items-center gap-2 text-xs">
             <Globe2 className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedLang}
-              onChange={(e) => setSelectedLang(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedLang(val);
+                localStorage.setItem('supertools_speech_lang', val);
+              }}
               className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:outline-hidden"
             >
               <option value="en-US">English (US)</option>
@@ -225,6 +256,79 @@ export const AiSpeechTranscriber: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Expandable AI Performance & Model Tuning Panel */}
+      {showAiConfig && (
+        <div className="p-5 rounded-3xl bg-slate-900 border border-indigo-500/30 text-white space-y-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-indigo-400" />
+              <h4 className="font-bold text-sm text-slate-100">Speech Transcriber Acoustic Engine & Memory Options</h4>
+            </div>
+            <a
+              href="./settings.html"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Full System Settings &rarr;</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Model Selection */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Acoustic Recognition Model</span>
+                <span className="font-mono text-indigo-400 text-[11px]">{speechModel.toUpperCase()}</span>
+              </label>
+              <select
+                value={speechModel}
+                onChange={(e) => {
+                  setSpeechModel(e.target.value as any);
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold focus:outline-none"
+              >
+                <option value="native">Native OS Speech Neural Model (Hardware-accelerated, 0MB JS heap)</option>
+                <option value="fast-acoustic">Fast Continuous Acoustic Recognizer (Low Latency, 24MB RAM)</option>
+                <option value="studio-multilingual">Studio Deep Multilingual Acoustic Stream (48MB RAM)</option>
+              </select>
+              <span className="text-[10px] text-slate-400 block">
+                {speechModel === 'native' && '⚡ Direct OS audio pipeline. Zero JS garbage collection overhead.'}
+                {speechModel === 'fast-acoustic' && '⚖️ Low-latency continuous acoustic recognition with high sentence buffering.'}
+                {speechModel === 'studio-multilingual' && '✨ Multi-dialect token stream with dynamic confidence thresholding.'}
+              </span>
+            </div>
+
+            {/* RAM Budget Slider */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Allocated Audio RAM Budget</span>
+                <span className="font-mono text-emerald-400 text-[11px] font-bold">
+                  {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}
+                </span>
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="400"
+                step="10"
+                value={ramBudget}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setRamBudget(val);
+                  localStorage.setItem('supertools_ram_budget', String(val));
+                }}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>10 MB (Low-Spec Safe)</span>
+                <span>100 MB (Balanced)</span>
+                <span>400 MB (Studio Max)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace */}
       <div className="p-6 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">

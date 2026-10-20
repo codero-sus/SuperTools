@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu } from 'lucide-react';
+import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu, Settings } from 'lucide-react';
 import { AmbientEffect } from './effects/AmbientBackground';
 import { getTierByLevel } from '../utils/hardwareScaling';
 
@@ -145,6 +145,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
           </button>
+
+          {/* Dedicated Settings Page */}
+          <a
+            href="./settings.html"
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+            title="Open Dedicated Settings Page (Hardware Scaling & AI Model Options)"
+          >
+            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300 hover:rotate-45 transition-transform" />
+          </a>
         </div>
       </div>
     </header>

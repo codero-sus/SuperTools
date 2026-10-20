@@ -210,3 +210,31 @@ export function getTierByLevel(level: number): HardwareTier {
   const found = HARDWARE_TIERS.find(t => t.level === level);
   return found || HARDWARE_TIERS[2]; // Default to Level 3 (6GB)
 }
+
+export function getUserRamBudgetMb(hardwareLevel: number): number {
+  if (typeof window === 'undefined') return getTierByLevel(hardwareLevel).maxRamBudgetMb;
+  const stored = localStorage.getItem('supertools_ram_budget');
+  if (stored && !isNaN(Number(stored))) {
+    return Number(stored);
+  }
+  return getTierByLevel(hardwareLevel).maxRamBudgetMb;
+}
+
+export function getUserCanvasDim(hardwareLevel: number): number {
+  if (typeof window === 'undefined') return getTierByLevel(hardwareLevel).maxCanvasDim;
+  const stored = localStorage.getItem('supertools_res_cap');
+  if (stored && !isNaN(Number(stored))) {
+    return Number(stored);
+  }
+  return getTierByLevel(hardwareLevel).maxCanvasDim;
+}
+
+export function getUserWorkerThreads(hardwareLevel: number): number {
+  if (typeof window === 'undefined') return getTierByLevel(hardwareLevel).workerThreads;
+  const stored = localStorage.getItem('supertools_workers');
+  if (stored && !isNaN(Number(stored))) {
+    return Number(stored);
+  }
+  return getTierByLevel(hardwareLevel).workerThreads;
+}
+
