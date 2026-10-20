@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/setup-tesseract-assets.cjs && tsc && vite build",
+    "prebuild": "node scripts/ensure-deps.cjs",
+    "build": "node scripts/ensure-deps.cjs && node scripts/setup-tesseract-assets.cjs && tsc && vite build",
     "preview": "vite preview",
     "postinstall": "node scripts/setup-tesseract-assets.cjs"
   },
