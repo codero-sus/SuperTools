@@ -10,6 +10,8 @@ import { ToolHeader } from './components/ToolHeader';
 import { CheatsheetView } from './components/CheatsheetView';
 import { AmbientBackground, AmbientEffect } from './components/effects/AmbientBackground';
 import { CategoryHub } from './components/CategoryHub';
+import { HardwareScalingModal } from './components/HardwareScalingModal';
+import { detectSystemHardware } from './utils/hardwareScaling';
 
 // Core Powerhouse Tools
 import { AutoPhotoProcessor } from './tools/AutoPhotoProcessor';
@@ -81,6 +83,38 @@ export const App: React.FC = () => {
   const [ambientEffect, setAmbientEffect] = useState<AmbientEffect>(() => {
     return (localStorage.getItem('supertools_ambient_mode') as AmbientEffect) || 'leaves';
   });
+
+  // Dynamic Hardware & AI Resource Scaling Tier (Level 1 to Level 10, 2GB to 256GB RAM)
+  const systemHw = useMemo(() => detectSystemHardware(), []);
+  const [hardwareLevel, setHardwareLevel] = useState<number>(() => {
+    const saved = localStorage.getItem('supertools_hw_level');
+    if (saved) return Number(saved);
+    return detectSystemHardware().detectedLevel;
+  });
+  const [isAutoHwMode, setIsAutoHwMode] = useState<boolean>(() => {
+    return localStorage.getItem('supertools_hw_auto') !== 'false';
+  });
+  const [hwModalOpen, setHwModalOpen] = useState<boolean>(false);
+
+  const handleSelectHwLevel = (lvl: number) => {
+    setHardwareLevel(lvl);
+    localStorage.setItem('supertools_hw_level', String(lvl));
+    setIsAutoHwMode(false);
+    localStorage.setItem('supertools_hw_auto', 'false');
+  };
+
+  const handleToggleAutoHwMode = () => {
+    if (!isAutoHwMode) {
+      const detected = systemHw.detectedLevel;
+      setHardwareLevel(detected);
+      localStorage.setItem('supertools_hw_level', String(detected));
+      localStorage.setItem('supertools_hw_auto', 'true');
+      setIsAutoHwMode(true);
+    } else {
+      localStorage.setItem('supertools_hw_auto', 'false');
+      setIsAutoHwMode(false);
+    }
+  };
 
   // Navigation state (active tool ID, or null for catalog view)
   const [activeToolId, setActiveToolId] = useState<string | null>(() => {
@@ -223,18 +257,18 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
-    if (id === 'ai-bg-remover') return <AiBackgroundRemover />;
+    if (id === 'ai-bg-remover') return <AiBackgroundRemover hardwareLevel={hardwareLevel} />;
     if (id === 'ai-doc-scanner') return <AiDocScanner />;
     if (id === 'ai-text-summarizer') return <AiTextSummarizer />;
     if (id === 'ai-smart-redactor') return <AiSmartRedactor />;
-    if (id === 'ai-image-upscaler') return <AiImageUpscaler />;
+    if (id === 'ai-image-upscaler') return <AiImageUpscaler hardwareLevel={hardwareLevel} />;
     if (id === 'ai-palette-extractor') return <AiPaletteExtractor />;
     if (id === 'ai-image-colorizer') return <AiImageColorizer />;
     if (id === 'ai-speech-transcriber') return <AiSpeechTranscriber />;
     if (id === 'auto-photo-processor') return <AutoPhotoProcessor />;
     if (id === 'universal-file-converter') return <UniversalFileConverter />;
     if (id === 'unified-text-forge') return <UnifiedTextForge />;
-    if (id === 'ocr-tool') return <OcrTool />;
+    if (id === 'ocr-tool') return <OcrTool hardwareLevel={hardwareLevel} />;
     if (id === 'file-transformer') return <FileTransformer />;
     if (id === 'video-downloader-helper') return <VideoDownloaderHelper />;
     if (id === 'screen-recorder') return <ScreenRecorder />;
@@ -344,6 +378,18 @@ export const App: React.FC = () => {
         onSelectTool={navigateToTool}
       />
 
+      {/* Hardware & AI Resource Scaling Studio Modal (Lvl 1 - 2GB to Lvl 10 - 256GB) */}
+      <HardwareScalingModal
+        isOpen={hwModalOpen}
+        onClose={() => setHwModalOpen(false)}
+        currentLevel={hardwareLevel}
+        onSelectLevel={handleSelectHwLevel}
+        isAutoMode={isAutoHwMode}
+        onToggleAutoMode={handleToggleAutoHwMode}
+        detectedRamGb={systemHw.detectedRamGb}
+        detectedCores={systemHw.detectedCores}
+      />
+
       {/* Top Sticky Navbar */}
       <Navbar
         darkMode={isDarkMode}
@@ -360,6 +406,8 @@ export const App: React.FC = () => {
         onGoHome={navigateHome}
         ambientEffect={ambientEffect}
         onCycleAmbient={cycleAmbient}
+        hardwareLevel={hardwareLevel}
+        onOpenHardwareModal={() => setHwModalOpen(true)}
       />
 
       {/* Main Content Area */}

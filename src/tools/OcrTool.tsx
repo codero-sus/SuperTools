@@ -7,6 +7,7 @@ import {
   CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity, Volume2, VolumeX, Table
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { getTierByLevel } from '../utils/hardwareScaling';
 
 // OCR Engine Models
 export type OcrModelType = 
@@ -20,6 +21,10 @@ export type OcrModelType =
 
 export type SupportedLanguage = 'eng' | 'spa' | 'fra' | 'deu';
 export type PageSegmentationMode = '3' | '6' | '11' | '7' | '8';
+
+export interface OcrToolProps {
+  hardwareLevel?: number;
+}
 
 interface WordBox {
   text: string;
@@ -87,16 +92,18 @@ interface ParsedCardData {
   isValidLuhn: boolean;
 }
 
-export const OcrTool: React.FC = () => {
+export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
+  const currentTier = getTierByLevel(hardwareLevel);
+
   // Selected Engine & Model Parameters
   const [selectedModel, setSelectedModel] = useState<OcrModelType>('lstm-neural');
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('eng');
   const [psmMode, setPsmMode] = useState<PageSegmentationMode>('3');
   const [charWhitelist, setCharWhitelist] = useState<'all' | 'alphanumeric' | 'digits'>('all');
 
-  // Low-End PC (4-6GB RAM) Optimizations
-  const [ecoMode, setEcoMode] = useState<boolean>(true); // Caps resolution to 1400px to maintain <40MB RAM
-  const [maxDimension, setMaxDimension] = useState<number>(1400);
+  // Dynamic Hardware Scaling Settings
+  const [ecoMode, setEcoMode] = useState<boolean>(true);
+  const maxDimension = ecoMode ? currentTier.maxCanvasDim : 8192;
 
   // Input & Visual State
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -779,7 +786,7 @@ export const OcrTool: React.FC = () => {
         setProgress(25);
 
         const { createWorker } = await import('tesseract.js');
-        const worker = await createWorker(selectedLanguage, 1, {
+        const worker = await createWorker(selectedLanguage, currentTier.workerThreads, {
           workerPath: `${window.location.origin}/tesseract/worker.min.js`,
           corePath: `${window.location.origin}/tesseract`,
           langPath: `${window.location.origin}/tesseract/tessdata`,
@@ -1022,9 +1029,9 @@ export const OcrTool: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM: ~{estimatedRamMb} MB / 80 MB Max</span>
+            <span>RAM: ~{estimatedRamMb} MB / {currentTier.maxRamBudgetMb >= 1000 ? `${(currentTier.maxRamBudgetMb / 1000).toFixed(1)} GB` : `${currentTier.maxRamBudgetMb} MB`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-emerald-600">4-6GB Safe ✅</span>
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel} Scaling</span>
           </div>
 
           <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
@@ -1034,7 +1041,7 @@ export const OcrTool: React.FC = () => {
               onChange={(e) => setEcoMode(e.target.checked)}
               className="w-4 h-4 rounded text-emerald-600 accent-emerald-600"
             />
-            <span>Eco Cap (≤80MB RAM)</span>
+            <span>Auto Scale Cap ({maxDimension}px)</span>
           </label>
         </div>
 

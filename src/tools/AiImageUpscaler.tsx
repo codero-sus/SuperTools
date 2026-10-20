@@ -1,9 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Sparkles, Download, Sliders, Split, Gauge, Image as ImageIcon } from 'lucide-react';
+import { getTierByLevel } from '../utils/hardwareScaling';
 
-export const AiImageUpscaler: React.FC = () => {
+export interface AiImageUpscalerProps {
+  hardwareLevel?: number;
+}
+
+export const AiImageUpscaler: React.FC<AiImageUpscalerProps> = ({ hardwareLevel = 3 }) => {
+  const currentTier = getTierByLevel(hardwareLevel);
+
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [scaleFactor, setScaleFactor] = useState<2 | 4>(2);
+  const [scaleFactor, setScaleFactor] = useState<2 | 4 | 8>(currentTier.superResFactor >= 4 ? 4 : 2);
   const [sharpness, setSharpness] = useState<number>(45);
   const [denoise, setDenoise] = useState<number>(20);
   const [sliderPos, setSliderPos] = useState<number>(50);
@@ -167,9 +174,11 @@ export const AiImageUpscaler: React.FC = () => {
       {/* Top Banner */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM Safe: ~16 MB</span>
+            <span>RAM: ~16 MB / {currentTier.maxRamBudgetMb >= 1000 ? `${(currentTier.maxRamBudgetMb / 1000).toFixed(1)} GB` : `${currentTier.maxRamBudgetMb} MB`}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel} Scaling</span>
           </div>
           <span className="text-xs text-slate-500 font-medium">
             AI edge-adaptive detail recovery & unsharp masking
@@ -210,26 +219,36 @@ export const AiImageUpscaler: React.FC = () => {
             </h3>
 
             {/* Scale Selector */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-3 gap-2 text-xs">
               <button
                 onClick={() => setScaleFactor(2)}
-                className={`p-3 rounded-xl border text-center font-bold transition-all ${
+                className={`p-2.5 rounded-xl border text-center font-bold transition-all ${
                   scaleFactor === 2
                     ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950 text-indigo-600'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                 }`}
               >
-                2X Ultra Sharp
+                2X Sharp
               </button>
               <button
                 onClick={() => setScaleFactor(4)}
-                className={`p-3 rounded-xl border text-center font-bold transition-all ${
+                className={`p-2.5 rounded-xl border text-center font-bold transition-all ${
                   scaleFactor === 4
                     ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950 text-indigo-600'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                 }`}
               >
-                4X Maximum Detail
+                4X Detail
+              </button>
+              <button
+                onClick={() => setScaleFactor(8)}
+                className={`p-2.5 rounded-xl border text-center font-bold transition-all ${
+                  scaleFactor === 8
+                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950 text-indigo-600'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                8X Studio
               </button>
             </div>
 
