@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import CryptoJS from 'crypto-js';
+import CryptoJS from '../utils/crypto';
 import { QuickCopy } from '../components/QuickCopy';
 import { FileCheck, Upload, CheckCircle2, AlertCircle, File } from 'lucide-react';
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import CryptoJS from 'crypto-js';
+import CryptoJS from '../utils/crypto';
 import { QuickCopy } from '../components/QuickCopy';
 import { ArrowRightLeft, Download, Trash2, Copy, Sparkles, Lock, Code, Type, Shield, RefreshCw } from 'lucide-react';
 

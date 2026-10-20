@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js';
+import CryptoJS from '../utils/crypto';
 import { QuickCopy } from '../components/QuickCopy';
 import { Shield, Clock, RefreshCw } from 'lucide-react';
 
