@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import CryptoJS from 'crypto-js';
+import CryptoJS from '../utils/crypto';
 import { ShieldCheck, Lock, Unlock, EyeOff, FileText, Image as ImageIcon, Download, Upload, CheckCircle2 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 
