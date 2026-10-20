@@ -11,7 +11,7 @@ echo ========================================================
 echo.
 
 :: 1. Fetch latest updates from the active session branch
-echo [1/4] Fetching latest updates from GitHub...
+echo [1/5] Fetching latest updates from GitHub...
 git fetch origin arena/0112e70e-supertools
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Git fetch failed! Check your internet connection.
