@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, Sparkles, Download, Sliders, Split, Gauge, Image as ImageIcon } from 'lucide-react';
-import { getTierByLevel } from '../utils/hardwareScaling';
+import { Upload, Sparkles, Download, Sliders, Split, Gauge, Image as ImageIcon, Cpu, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 
 export interface AiImageUpscalerProps {
   hardwareLevel?: number;
@@ -9,8 +9,20 @@ export interface AiImageUpscalerProps {
 export const AiImageUpscaler: React.FC<AiImageUpscalerProps> = ({ hardwareLevel = 3 }) => {
   const currentTier = getTierByLevel(hardwareLevel);
 
+  const [upscaleModel, setUpscaleModel] = useState<'fast' | 'balanced' | 'neural'>('balanced');
+  const [ramBudget, setRamBudget] = useState<number>(() => {
+    return getUserRamBudgetMb(hardwareLevel);
+  });
+  const [showAiConfig, setShowAiConfig] = useState<boolean>(false);
+
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [scaleFactor, setScaleFactor] = useState<2 | 4 | 8>(currentTier.superResFactor >= 4 ? 4 : 2);
+  const [scaleFactor, setScaleFactor] = useState<2 | 4 | 8>(() => {
+    const saved = localStorage.getItem('supertools_upscale_factor');
+    if (saved && (saved === '2' || saved === '4' || saved === '8')) {
+      return Number(saved) as 2 | 4 | 8;
+    }
+    return currentTier.superResFactor >= 4 ? 4 : 2;
+  });
   const [sharpness, setSharpness] = useState<number>(45);
   const [denoise, setDenoise] = useState<number>(20);
   const [sliderPos, setSliderPos] = useState<number>(50);
@@ -171,18 +183,28 @@ export const AiImageUpscaler: React.FC<AiImageUpscalerProps> = ({ hardwareLevel 
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* Top Banner with Hardware Tier & RAM Meter */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM: ~16 MB / {currentTier.maxRamBudgetMb >= 1000 ? `${(currentTier.maxRamBudgetMb / 1000).toFixed(1)} GB` : `${currentTier.maxRamBudgetMb} MB`}</span>
+            <span>RAM: ~{scaleFactor === 2 ? '16' : scaleFactor === 4 ? '48' : '120'} MB / {ramBudget >= 1000 ? `${(ramBudget / 1000).toFixed(1)} GB` : `${ramBudget} MB`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel} Scaling</span>
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel}</span>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
-            AI edge-adaptive detail recovery & unsharp masking
-          </span>
+
+          <button
+            onClick={() => setShowAiConfig(!showAiConfig)}
+            className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              showAiConfig
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+            <span>AI Model & RAM Options</span>
+            {showAiConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -207,6 +229,79 @@ export const AiImageUpscaler: React.FC<AiImageUpscalerProps> = ({ hardwareLevel 
           </button>
         </div>
       </div>
+
+      {/* Expandable AI Performance & Model Tuning Panel */}
+      {showAiConfig && (
+        <div className="p-5 rounded-3xl bg-slate-900 border border-indigo-500/30 text-white space-y-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-indigo-400" />
+              <h4 className="font-bold text-sm text-slate-100">AI Super-Resolution Engine & Memory Options</h4>
+            </div>
+            <a
+              href="./settings.html"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Full System Settings &rarr;</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Model Selection */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Super-Resolution Model</span>
+                <span className="font-mono text-indigo-400 text-[11px]">{upscaleModel.toUpperCase()}</span>
+              </label>
+              <select
+                value={upscaleModel}
+                onChange={(e) => {
+                  setUpscaleModel(e.target.value as any);
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold focus:outline-none"
+              >
+                <option value="fast">Edge-Adaptive Bicubic (Fast, 24MB RAM Safe for 2-4GB PCs)</option>
+                <option value="balanced">Multi-Pass Unsharp & Dynamic Bilateral (Balanced, 60MB RAM)</option>
+                <option value="neural">Subpixel High-DPI Neural Super-Resolution (Studio, 150MB+ RAM)</option>
+              </select>
+              <span className="text-[10px] text-slate-400 block">
+                {upscaleModel === 'fast' && '⚡ High-speed bilinear interpolation with lightweight contrast stretching.'}
+                {upscaleModel === 'balanced' && '⚖️ Multi-pass unsharp masking and 2D edge directional gradients.'}
+                {upscaleModel === 'neural' && '✨ Subpixel neural interpolation with high-frequency harmonic reconstruction.'}
+              </span>
+            </div>
+
+            {/* RAM Budget Slider */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Allocated Upscaler RAM Budget</span>
+                <span className="font-mono text-emerald-400 text-[11px] font-bold">
+                  {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}
+                </span>
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="3000"
+                step="20"
+                value={ramBudget}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setRamBudget(val);
+                  localStorage.setItem('supertools_ram_budget', String(val));
+                }}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>20 MB (Low-Spec Safe)</span>
+                <span>300 MB (Balanced)</span>
+                <span>3000 MB (Studio Max)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

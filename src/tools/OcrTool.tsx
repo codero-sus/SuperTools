@@ -4,7 +4,7 @@ import {
   Upload, FileText, Download, Copy, RefreshCw, Eye, Sparkles, Sliders, 
   RotateCw, RotateCcw, Search, Check, AlertCircle, Cpu, Zap, Receipt, 
   Code2, Globe2, ShieldCheck, CheckCircle2, ChevronRight, Hash, Layers,
-  CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity, Volume2, VolumeX, Table
+  CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity, Volume2, VolumeX, Table, Settings
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 import { getTierByLevel } from '../utils/hardwareScaling';
@@ -1043,6 +1043,15 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
             />
             <span>Auto Scale Cap ({maxDimension}px)</span>
           </label>
+
+          <a
+            href="./settings.html"
+            className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 hover:border-indigo-400 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1 shadow-2xs"
+            title="Adjust OCR Engine models & RAM budget in Dedicated Settings"
+          >
+            <Settings className="w-3 h-3 text-indigo-500" />
+            <span>AI Settings &rarr;</span>
+          </a>
         </div>
 
         {/* 1-Click Samples */}

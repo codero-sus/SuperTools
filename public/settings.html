@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperTools — Global AI & Hardware RAM Settings</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'/><circle cx='12' cy='12' r='3'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      .font-mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+  </head>
+  <body class="bg-[#090d16] text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white p-4 sm:p-8">
+    <div class="max-w-5xl mx-auto space-y-8">
+      
+      <!-- Top Navigation Header -->
+      <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <a href="./index.html" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 hover:scale-105 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </a>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-black tracking-tight text-white">
+                Global Settings & AI Hardware Tuning
+              </h1>
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                100% Client-Side
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">
+              Configure RAM budgets, thread limits, and default models across all SuperTools utilities (Level 1 [2GB] &rarr; Level 10 [256GB]).
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <a href="./index.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-all flex items-center gap-1.5 border border-slate-700">
+            <span>&larr; Back to SuperTools</span>
+          </a>
+          <button id="btnSaveTop" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all">
+            Save Settings
+          </button>
+        </div>
+      </header>
+
+      <!-- Hardware Live Diagnostic Card -->
+      <section class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h2 class="text-sm font-black uppercase tracking-wider text-slate-300">
+              Detected Hardware & Machine Profile
+            </h2>
+          </div>
+          <span id="hwAutoBadge" class="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/80 px-2.5 py-1 rounded-full border border-indigo-800">
+            Auto-Detecting Browser Engine...
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Available RAM</span>
+            <p id="dispRam" class="text-xl font-black font-mono text-emerald-400 mt-0.5">-- GB</p>
+            <span class="text-[10px] text-slate-500">From navigator.deviceMemory</span>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Logical CPU Cores</span>
+            <p id="dispCores" class="text-xl font-black font-mono text-indigo-400 mt-0.5">-- Cores</p>
+            <span class="text-[10px] text-slate-500">Max hardware threads</span>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Active Scale Tier</span>
+            <p id="dispTier" class="text-lg font-black text-white mt-0.5 truncate">Level 3 [6GB]</p>
+            <span class="text-[10px] text-slate-500">Adaptive scaling profile</span>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Active RAM Budget</span>
+            <p id="dispBudget" class="text-xl font-black font-mono text-amber-400 mt-0.5">80 MB</p>
+            <span class="text-[10px] text-slate-500">Per-tool allocation ceiling</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10-Level Hardware Scale Tier Selector -->
+      <section class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-black text-white">
+              Hardware Scaling Tier (Level 1 &rarr; Level 10)
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Select your machine's hardware level or use manual custom tuning.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-300 flex items-center gap-2 cursor-pointer bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+              <input type="checkbox" id="chkAuto" class="w-4 h-4 rounded text-indigo-600 accent-indigo-600" />
+              <span>Auto-Detect Hardware</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Slider -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-400">Current Level:</span>
+            <span id="sliderLabel" class="font-mono font-black text-indigo-400 text-sm">Level 3 (6 GB RAM Target)</span>
+          </div>
+          <input type="range" id="levelSlider" min="1" max="10" step="1" value="3" class="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-800 rounded-lg" />
+          <div class="flex justify-between text-[10px] font-mono font-bold text-slate-500">
+            <span>Lvl 1 (2GB)</span>
+            <span>Lvl 3 (6GB)</span>
+            <span>Lvl 5 (16GB)</span>
+            <span>Lvl 7 (64GB)</span>
+            <span>Lvl 10 (256GB)</span>
+          </div>
+        </div>
+
+        <!-- 10 Tiers Quick-Select Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5" id="tierCardsContainer">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+      <!-- Custom RAM Budget & Hardware Knobs -->
+      <section class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-5">
+        <h2 class="text-base font-black text-white">
+          Custom Resource Allocation Knobs
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Custom RAM Budget Slider -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-300">Max RAM Budget Ceiling</span>
+              <span id="customRamDisplay" class="font-mono font-black text-emerald-400 text-sm">80 MB</span>
+            </div>
+            <input type="range" id="ramSlider" min="20" max="8000" step="10" value="80" class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>20 MB (Ultra Eco)</span>
+              <span>80 MB (Low-End PC)</span>
+              <span>1 GB</span>
+              <span>8 GB (Max Beast)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Strict ceiling for canvas transformations and neural memory buffers. Prevents browser tab freezes on 4–6GB PCs.
+            </p>
+          </div>
+
+          <!-- Max Canvas Dimension Cap -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-300">Max Processing Resolution</span>
+              <span id="resDisplay" class="font-mono font-black text-indigo-400 text-sm">1800 px</span>
+            </div>
+            <input type="range" id="resSlider" min="1024" max="8192" step="128" value="1800" class="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-800 rounded-lg" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>1024 px (HD)</span>
+              <span>1800 px</span>
+              <span>4096 px (4K)</span>
+              <span>8192 px (8K)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Downscale threshold for huge 48MP mobile photos before running OCR, background removal, or colorization.
+            </p>
+          </div>
+        </div>
+
+        <!-- Thread Worker Count -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold text-slate-300 block">Parallel Web Worker Threads</span>
+            <span class="text-[11px] text-slate-400 block">Number of simultaneous SIMD neural inference workers to spawn.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="selWorkers" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-xs font-bold text-white focus:outline-none">
+              <option value="1">1 Worker (Low-RAM Safe)</option>
+              <option value="2" selected>2 Workers (Balanced)</option>
+              <option value="4">4 Workers (Quad Core)</option>
+              <option value="8">8 Workers (Octa Core)</option>
+              <option value="16">16 Workers (Pro Workstation)</option>
+              <option value="24">24 Workers (Extreme Server)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Default AI Model Configuration Per Feature -->
+      <section class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-5">
+        <h2 class="text-base font-black text-white">
+          Default Model & Precision Settings Per Feature
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+          <!-- OCR Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Default OCR Neural Engine</span>
+            <select id="selOcrModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="lstm-neural" selected>Tesseract 5 LSTM Neural Model</option>
+              <option value="receipt-parser">Smart Receipt & Invoice AI</option>
+              <option value="mrz-passport">ICAO 9303 Passport MRZ Parser</option>
+              <option value="credit-card">Credit Card & Luhn Verifier</option>
+              <option value="code-syntax">Code & Syntax Recognizer</option>
+              <option value="native-vision">Native OS TextDetector</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Active model on OCR Studio startup</span>
+          </div>
+
+          <!-- OCR Language -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Default OCR Language Model</span>
+            <select id="selOcrLang" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="eng" selected>English (eng.traineddata)</option>
+              <option value="spa">Spanish (spa.traineddata)</option>
+              <option value="fra">French (fra.traineddata)</option>
+              <option value="deu">German (deu.traineddata)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Local pre-compiled weights</span>
+          </div>
+
+          <!-- Background Removal Saliency -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Background Removal Precision</span>
+            <select id="selBgPrecision" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="balanced" selected>Balanced Matting (2-Pass Feather)</option>
+              <option value="fast">Ultra-Fast Eco (1-Pass Threshold)</option>
+              <option value="studio">Studio Edge (Dual-Pass Laplacian)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Edge refinement depth</span>
+          </div>
+
+          <!-- Super-Resolution Upscaler -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Default Super-Resolution Scale</span>
+            <select id="selUpscaleFactor" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="2" selected>2X Ultra Sharp (Low-RAM Safe)</option>
+              <option value="4">4X Maximum Detail (8GB+ RAM)</option>
+              <option value="8">8X Studio Extreme (Workstation)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">AI detail enhancement scale</span>
+          </div>
+
+          <!-- Document Scanner Filter -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Default Doc Scanner Filter</span>
+            <select id="selScannerFilter" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="magic-bw" selected>Scanner Magic B&W (Paper Whitening)</option>
+              <option value="color-boost">Color Document Boost</option>
+              <option value="grayscale">Smooth Grayscale</option>
+              <option value="original">Original Flat Dewarped</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Post-dewarping contrast filter</span>
+          </div>
+
+          <!-- Document Scanner Edge & Dewarp Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Doc Scanner Dewarping Model</span>
+            <select id="selDocModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="fast" selected>Bilateral Edge Dewarp (Fast, 16MB RAM)</option>
+              <option value="otsu">Adaptive Otsu Homography (Balanced, 48MB RAM)</option>
+              <option value="neural">High-DPI Neural Perspective Dewarp (Studio, 128MB+ RAM)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Corner detection & perspective engine</span>
+          </div>
+
+          <!-- Smart Redactor Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Smart Redactor Entity Model</span>
+            <select id="selRedactModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="regex" selected>Fast Regex & Pattern Heuristics (12MB RAM)</option>
+              <option value="ner">Named Entity Context Classifier (40MB RAM)</option>
+              <option value="deep">Multi-Pass PII & Deep Entity Parser (96MB RAM)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">PII & sensitive entity scanner</span>
+          </div>
+
+          <!-- Text Summarizer NLP Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Text Summarizer NLP Model</span>
+            <select id="selSummaryModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="textrank" selected>TextRank Centrality Graph (Balanced, 24MB RAM)</option>
+              <option value="fast">Fast Heuristic Frequency (Ultra-Light, 4MB RAM)</option>
+              <option value="deep">Multi-Pass Semantic Density & Coref (Deep, 64MB RAM)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Extractive summarization algorithm</span>
+          </div>
+
+          <!-- Photo Colorizer Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Photo Colorizer Model</span>
+            <select id="selColorizeModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="balanced" selected>Bilateral Depth-Aware Colorizer (48MB RAM)</option>
+              <option value="fast">Fast Chromatic Luminance Map (16MB RAM)</option>
+              <option value="studio">Multi-Scale Neural Radiance Gamut (128MB+ RAM)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Monochrome to chromatic color space</span>
+          </div>
+
+          <!-- Palette Extractor Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Palette Extractor Clustering Model</span>
+            <select id="selPaletteModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="standard" selected>Standard Median Cut (150x150, 16MB RAM)</option>
+              <option value="fast">Fast K-Means Fast Quant (80x80, 4MB RAM)</option>
+              <option value="cielab">High-Density CIELAB Spectral (300x300, 48MB RAM)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Color quantization & cluster accuracy</span>
+          </div>
+
+          <!-- Speech Transcriber Language -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Speech Dictation Language</span>
+            <select id="selSpeechLang" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="en-US" selected>English (United States)</option>
+              <option value="en-GB">English (United Kingdom)</option>
+              <option value="es-ES">Spanish (Español)</option>
+              <option value="fr-FR">French (Français)</option>
+              <option value="de-DE">German (Deutsch)</option>
+              <option value="hi-IN">Hindi (हिन्दी)</option>
+              <option value="ja-JP">Japanese (日本語)</option>
+              <option value="zh-CN">Chinese (中文)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Hardware speech recognition tag</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Action Footer -->
+      <footer class="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition-all">
+            Reset to Recommended Defaults
+          </button>
+          <button id="btnExport" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition-all">
+            Export Config JSON
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <a href="./index.html" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">
+            Cancel
+          </a>
+          <button id="btnSaveBottom" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 transition-all">
+            Apply & Save All Changes
+          </button>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- Interactive Client-Side Settings Manager Script -->
+    <script>
+      const HARDWARE_TIERS = [
+        { level: 1, label: 'Lvl 1 [2GB]', name: 'Ultra-Eco', ram: 2, budget: 25, dim: 1024, workers: 1 },
+        { level: 2, label: 'Lvl 2 [4GB]', name: 'Budget PC', ram: 4, budget: 50, dim: 1400, workers: 1 },
+        { level: 3, label: 'Lvl 3 [6GB]', name: 'Balanced', ram: 6, budget: 80, dim: 1800, workers: 2 },
+        { level: 4, label: 'Lvl 4 [8GB]', name: 'Standard', ram: 8, budget: 150, dim: 2400, workers: 2 },
+        { level: 5, label: 'Lvl 5 [16GB]', name: 'Performance', ram: 16, budget: 300, dim: 3200, workers: 4 },
+        { level: 6, label: 'Lvl 6 [32GB]', name: 'Pro Rig', ram: 32, budget: 600, dim: 4096, workers: 6 },
+        { level: 7, label: 'Lvl 7 [64GB]', name: 'High-End', ram: 64, budget: 1200, dim: 5120, workers: 8 },
+        { level: 8, label: 'Lvl 8 [128GB]', name: 'Studio', ram: 128, budget: 2500, dim: 6400, workers: 12 },
+        { level: 9, label: 'Lvl 9 [192GB]', name: 'Master', ram: 192, budget: 5000, dim: 7680, workers: 16 },
+        { level: 10, label: 'Lvl 10 [256GB]', name: 'Extreme', ram: 256, budget: 8000, dim: 8192, workers: 24 }
+      ];
+
+      // Detect system specs
+      const detectedRam = navigator.deviceMemory || 6;
+      const detectedCores = navigator.hardwareConcurrency || 4;
+      document.getElementById('dispRam').textContent = detectedRam + ' GB';
+      document.getElementById('dispCores').textContent = detectedCores + ' Cores';
+
+      let autoDetectedLevel = 3;
+      if (detectedRam <= 2) autoDetectedLevel = 1;
+      else if (detectedRam <= 4) autoDetectedLevel = 2;
+      else if (detectedRam <= 6) autoDetectedLevel = 3;
+      else if (detectedRam <= 8) autoDetectedLevel = 4;
+      else if (detectedRam <= 16) autoDetectedLevel = 5;
+      else if (detectedRam <= 32) autoDetectedLevel = 6;
+      else if (detectedRam <= 64) autoDetectedLevel = 7;
+      else if (detectedRam <= 128) autoDetectedLevel = 8;
+      else if (detectedRam <= 192) autoDetectedLevel = 9;
+      else autoDetectedLevel = 10;
+
+      document.getElementById('hwAutoBadge').textContent = 'Detected ' + detectedRam + 'GB RAM • Matched Level ' + autoDetectedLevel;
+
+      // Load saved state or default
+      let currentLevel = Number(localStorage.getItem('supertools_hw_level') || autoDetectedLevel);
+      let isAuto = localStorage.getItem('supertools_hw_auto') !== 'false';
+      let customRam = Number(localStorage.getItem('supertools_ram_budget') || HARDWARE_TIERS[currentLevel - 1].budget);
+      let customRes = Number(localStorage.getItem('supertools_res_cap') || HARDWARE_TIERS[currentLevel - 1].dim);
+      let customWorkers = Number(localStorage.getItem('supertools_workers') || HARDWARE_TIERS[currentLevel - 1].workers);
+
+      // Populate Tier Cards Grid
+      const container = document.getElementById('tierCardsContainer');
+      function renderTierCards() {
+        container.innerHTML = '';
+        HARDWARE_TIERS.forEach(t => {
+          const btn = document.createElement('button');
+          btn.className = 'p-3 rounded-2xl border text-left transition-all ' + 
+            (t.level === currentLevel 
+              ? 'border-indigo-500 bg-indigo-950/60 shadow-lg shadow-indigo-600/20' 
+              : 'border-slate-800 bg-slate-950/60 hover:border-slate-700');
+          btn.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-mono font-black text-xs ${t.level === currentLevel ? 'text-indigo-400' : 'text-slate-200'}">${t.label}</span>
+              <span class="text-[10px] font-bold text-slate-500">&le;${t.budget >= 1000 ? (t.budget/1000).toFixed(1)+'GB' : t.budget+'MB'}</span>
+            </div>
+            <span class="text-[11px] font-bold text-slate-400 block truncate">${t.name}</span>
+            <span class="text-[10px] font-mono text-slate-500 block mt-1">${t.dim}px • ${t.workers}w</span>
+          `;
+          btn.onclick = () => selectLevel(t.level, false);
+          container.appendChild(btn);
+        });
+
+        // Update displays
+        const active = HARDWARE_TIERS[currentLevel - 1] || HARDWARE_TIERS[2];
+        document.getElementById('dispTier').textContent = active.label + ' ' + active.name;
+        document.getElementById('dispBudget').textContent = (customRam >= 1000 ? (customRam/1000).toFixed(1)+' GB' : customRam + ' MB');
+        document.getElementById('sliderLabel').textContent = 'Level ' + currentLevel + ' (' + active.ram + ' GB RAM Target)';
+        document.getElementById('levelSlider').value = currentLevel;
+        document.getElementById('chkAuto').checked = isAuto;
+        document.getElementById('ramSlider').value = customRam;
+        document.getElementById('customRamDisplay').textContent = (customRam >= 1000 ? (customRam/1000).toFixed(1)+' GB' : customRam + ' MB');
+        document.getElementById('resSlider').value = customRes;
+        document.getElementById('resDisplay').textContent = customRes + ' px';
+        document.getElementById('selWorkers').value = customWorkers;
+      }
+
+      function selectLevel(lvl, fromAuto) {
+        currentLevel = lvl;
+        if (!fromAuto) isAuto = false;
+        const tier = HARDWARE_TIERS[currentLevel - 1];
+        customRam = tier.budget;
+        customRes = tier.dim;
+        customWorkers = tier.workers;
+        renderTierCards();
+      }
+
+      document.getElementById('levelSlider').oninput = (e) => {
+        selectLevel(Number(e.target.value), false);
+      };
+
+      document.getElementById('chkAuto').onchange = (e) => {
+        isAuto = e.target.checked;
+        if (isAuto) {
+          selectLevel(autoDetectedLevel, true);
+        }
+      };
+
+      document.getElementById('ramSlider').oninput = (e) => {
+        customRam = Number(e.target.value);
+        document.getElementById('customRamDisplay').textContent = (customRam >= 1000 ? (customRam/1000).toFixed(1)+' GB' : customRam + ' MB');
+        document.getElementById('dispBudget').textContent = document.getElementById('customRamDisplay').textContent;
+      };
+
+      document.getElementById('resSlider').oninput = (e) => {
+        customRes = Number(e.target.value);
+        document.getElementById('resDisplay').textContent = customRes + ' px';
+      };
+
+      document.getElementById('selWorkers').onchange = (e) => {
+        customWorkers = Number(e.target.value);
+      };
+
+      // Load feature defaults
+      const ocrModel = localStorage.getItem('supertools_ocr_default_model');
+      if (ocrModel) document.getElementById('selOcrModel').value = ocrModel;
+
+      const ocrLang = localStorage.getItem('supertools_ocr_lang');
+      if (ocrLang) document.getElementById('selOcrLang').value = ocrLang;
+
+      const bgPrec = localStorage.getItem('supertools_bg_precision');
+      if (bgPrec) document.getElementById('selBgPrecision').value = bgPrec;
+
+      const upFactor = localStorage.getItem('supertools_upscale_factor');
+      if (upFactor) document.getElementById('selUpscaleFactor').value = upFactor;
+
+      const scanFilter = localStorage.getItem('supertools_scanner_filter');
+      if (scanFilter) document.getElementById('selScannerFilter').value = scanFilter;
+
+      const spLang = localStorage.getItem('supertools_speech_lang');
+      if (spLang) document.getElementById('selSpeechLang').value = spLang;
+
+      const docModel = localStorage.getItem('supertools_doc_model');
+      if (docModel) document.getElementById('selDocModel').value = docModel;
+
+      const redactModel = localStorage.getItem('supertools_redact_model');
+      if (redactModel) document.getElementById('selRedactModel').value = redactModel;
+
+      const summaryModel = localStorage.getItem('supertools_summary_model');
+      if (summaryModel) document.getElementById('selSummaryModel').value = summaryModel;
+
+      const colorizeModel = localStorage.getItem('supertools_colorize_model');
+      if (colorizeModel) document.getElementById('selColorizeModel').value = colorizeModel;
+
+      const paletteModel = localStorage.getItem('supertools_palette_model');
+      if (paletteModel) document.getElementById('selPaletteModel').value = paletteModel;
+
+      // Save Function
+      function saveAllSettings() {
+        localStorage.setItem('supertools_hw_level', String(currentLevel));
+        localStorage.setItem('supertools_hw_auto', String(isAuto));
+        localStorage.setItem('supertools_ram_budget', String(customRam));
+        localStorage.setItem('supertools_res_cap', String(customRes));
+        localStorage.setItem('supertools_workers', String(customWorkers));
+
+        localStorage.setItem('supertools_ocr_default_model', document.getElementById('selOcrModel').value);
+        localStorage.setItem('supertools_ocr_lang', document.getElementById('selOcrLang').value);
+        localStorage.setItem('supertools_bg_precision', document.getElementById('selBgPrecision').value);
+        localStorage.setItem('supertools_upscale_factor', document.getElementById('selUpscaleFactor').value);
+        localStorage.setItem('supertools_scanner_filter', document.getElementById('selScannerFilter').value);
+        localStorage.setItem('supertools_doc_model', document.getElementById('selDocModel').value);
+        localStorage.setItem('supertools_redact_model', document.getElementById('selRedactModel').value);
+        localStorage.setItem('supertools_summary_model', document.getElementById('selSummaryModel').value);
+        localStorage.setItem('supertools_colorize_model', document.getElementById('selColorizeModel').value);
+        localStorage.setItem('supertools_palette_model', document.getElementById('selPaletteModel').value);
+        localStorage.setItem('supertools_speech_lang', document.getElementById('selSpeechLang').value);
+
+        const notification = document.createElement('div');
+        notification.className = 'fixed bottom-6 right-6 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl flex items-center gap-2 z-50 animate-bounce';
+        notification.innerHTML = '<span>✓ Settings Saved Successfully! Redirecting...</span>';
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          window.location.href = './index.html';
+        }, 800);
+      }
+
+      document.getElementById('btnSaveTop').onclick = saveAllSettings;
+      document.getElementById('btnSaveBottom').onclick = saveAllSettings;
+
+      // Reset
+      document.getElementById('btnReset').onclick = () => {
+        if (confirm('Reset all settings to recommended hardware defaults?')) {
+          localStorage.removeItem('supertools_hw_level');
+          localStorage.removeItem('supertools_hw_auto');
+          localStorage.removeItem('supertools_ram_budget');
+          localStorage.removeItem('supertools_res_cap');
+          localStorage.removeItem('supertools_workers');
+          selectLevel(autoDetectedLevel, true);
+        }
+      };
+
+      // Export Config
+      document.getElementById('btnExport').onclick = () => {
+        const config = {
+          hardwareLevel: currentLevel,
+          isAuto,
+          ramBudgetMb: customRam,
+          maxCanvasDimension: customRes,
+          workerThreads: customWorkers,
+          ocrModel: document.getElementById('selOcrModel').value,
+          ocrLang: document.getElementById('selOcrLang').value,
+          bgPrecision: document.getElementById('selBgPrecision').value,
+          upscaleFactor: document.getElementById('selUpscaleFactor').value,
+          scannerFilter: document.getElementById('selScannerFilter').value,
+          docModel: document.getElementById('selDocModel').value,
+          redactModel: document.getElementById('selRedactModel').value,
+          summaryModel: document.getElementById('selSummaryModel').value,
+          colorizeModel: document.getElementById('selColorizeModel').value,
+          paletteModel: document.getElementById('selPaletteModel').value,
+          speechLang: document.getElementById('selSpeechLang').value,
+          exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'supertools-ai-settings.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      renderTierCards();
+    </script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, Sparkles, Download, Sliders, Eraser, Eye, Layers, Palette, Gauge, Split, Check, ArrowRight } from 'lucide-react';
+import { Upload, Sparkles, Download, Sliders, Eraser, Eye, Layers, Palette, Gauge, Split, Check, ArrowRight, Cpu, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
-import { getTierByLevel } from '../utils/hardwareScaling';
+import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 
 type BgPreset = 
   | 'transparent' 
@@ -19,6 +19,13 @@ export interface AiBackgroundRemoverProps {
 
 export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwareLevel = 3 }) => {
   const currentTier = getTierByLevel(hardwareLevel);
+  const [bgPrecision, setBgPrecision] = useState<'balanced' | 'fast' | 'studio'>(() => {
+    return (localStorage.getItem('supertools_bg_precision') as any) || 'balanced';
+  });
+  const [ramBudget, setRamBudget] = useState<number>(() => {
+    return getUserRamBudgetMb(hardwareLevel);
+  });
+  const [showAiConfig, setShowAiConfig] = useState<boolean>(false);
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -322,15 +329,28 @@ export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwa
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with 80MB Budget Indicator */}
+      {/* Top Banner with RAM Meter & AI Options */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM: ~{estimatedRam} MB / {currentTier.maxRamBudgetMb >= 1000 ? `${(currentTier.maxRamBudgetMb / 1000).toFixed(1)} GB` : `${currentTier.maxRamBudgetMb} MB`}</span>
+            <span>RAM: ~{estimatedRam} MB / {ramBudget >= 1000 ? `${(ramBudget / 1000).toFixed(1)} GB` : `${ramBudget} MB`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel} Scaling</span>
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel}</span>
           </div>
+
+          <button
+            onClick={() => setShowAiConfig(!showAiConfig)}
+            className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              showAiConfig
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+            <span>AI Model & RAM Options</span>
+            {showAiConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
 
           <button
             onClick={() => setShowSplit(!showSplit)}
@@ -367,6 +387,81 @@ export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwa
           </button>
         </div>
       </div>
+
+      {/* Expandable AI Performance & Model Tuning Panel */}
+      {showAiConfig && (
+        <div className="p-5 rounded-3xl bg-slate-900 border border-indigo-500/30 text-white space-y-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-indigo-400" />
+              <h4 className="font-bold text-sm text-slate-100">AI Background Remover Precision & Memory Options</h4>
+            </div>
+            <a
+              href="./settings.html"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Full System Settings &rarr;</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Model Selection */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Alpha Matting Model & Precision</span>
+                <span className="font-mono text-indigo-400 text-[11px]">{bgPrecision.toUpperCase()}</span>
+              </label>
+              <select
+                value={bgPrecision}
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  setBgPrecision(val);
+                  localStorage.setItem('supertools_bg_precision', val);
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold focus:outline-none"
+              >
+                <option value="fast">Ultra-Fast Eco (1-Pass Threshold, 15MB RAM Safe for 2-4GB PCs)</option>
+                <option value="balanced">Balanced Matting (2-Pass Feather & Saliency, 40MB RAM)</option>
+                <option value="studio">Studio Edge (Dual-Pass Laplacian & Contour Refinement, 90MB+ RAM)</option>
+              </select>
+              <span className="text-[10px] text-slate-400 block">
+                {bgPrecision === 'fast' && '⚡ Single-pass color thresholding with corner background sampling.'}
+                {bgPrecision === 'balanced' && '⚖️ 2-pass border feathering with foreground saliency preservation.'}
+                {bgPrecision === 'studio' && '✨ Subpixel edge anti-aliasing with studio contour refinement.'}
+              </span>
+            </div>
+
+            {/* RAM Budget Slider */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Allocated Matting RAM Budget</span>
+                <span className="font-mono text-emerald-400 text-[11px] font-bold">
+                  {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}
+                </span>
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="2000"
+                step="20"
+                value={ramBudget}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setRamBudget(val);
+                  localStorage.setItem('supertools_ram_budget', String(val));
+                }}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>20 MB (Low-Spec Safe)</span>
+                <span>300 MB (Balanced)</span>
+                <span>2000 MB (Studio Max)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

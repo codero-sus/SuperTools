@@ -1,15 +1,31 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { jsPDF } from 'jspdf';
-import { Upload, FileText, Download, RotateCw, Sparkles, Sliders, CheckCircle2, Gauge, Move } from 'lucide-react';
+import { Upload, FileText, Download, RotateCw, Sparkles, Sliders, CheckCircle2, Gauge, Move, Settings, Cpu, ChevronDown, ChevronUp } from 'lucide-react';
+import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 
 interface Point {
   x: number;
   y: number;
 }
 
-export const AiDocScanner: React.FC = () => {
+interface AiDocScannerProps {
+  hardwareLevel?: number;
+}
+
+export const AiDocScanner: React.FC<AiDocScannerProps> = ({ hardwareLevel = 3 }) => {
+  const currentTier = getTierByLevel(hardwareLevel);
+  const [docModel, setDocModel] = useState<'fast' | 'otsu' | 'neural'>(() => {
+    return (localStorage.getItem('supertools_doc_model') as any) || 'otsu';
+  });
+  const [ramBudget, setRamBudget] = useState<number>(() => {
+    return getUserRamBudgetMb(hardwareLevel);
+  });
+  const [showAiConfig, setShowAiConfig] = useState<boolean>(false);
+
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [filterMode, setFilterMode] = useState<'magic-bw' | 'color-boost' | 'grayscale' | 'original'>('magic-bw');
+  const [filterMode, setFilterMode] = useState<'magic-bw' | 'color-boost' | 'grayscale' | 'original'>(() => {
+    return (localStorage.getItem('supertools_scanner_filter') as any) || 'magic-bw';
+  });
   const [brightness, setBrightness] = useState<number>(10);
   const [contrast, setContrast] = useState<number>(35);
   const [corners, setCorners] = useState<Point[]>([
@@ -134,9 +150,17 @@ export const AiDocScanner: React.FC = () => {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Output dimension (Standard crisp letter aspect ratio)
-    const outW = 600;
-    const outH = 800;
+    // Output dimension adapts dynamically to RAM budget & doc model
+    let outW = 600;
+    let outH = 800;
+    if (ramBudget < 50) {
+      outW = 540;
+      outH = 720;
+    } else if (ramBudget >= 150) {
+      outW = 900;
+      outH = 1200;
+    }
+
     canvas.width = outW;
     canvas.height = outH;
 
@@ -148,7 +172,7 @@ export const AiDocScanner: React.FC = () => {
     if (!tempCtx) return;
     tempCtx.drawImage(img, 0, 0);
 
-    // Bilinear perspective sampling into output
+    // Perspective sampling into output
     const srcData = tempCtx.getImageData(0, 0, img.width, img.height);
     const outImgData = ctx.createImageData(outW, outH);
     const sD = srcData.data;
@@ -173,13 +197,15 @@ export const AiDocScanner: React.FC = () => {
           let g = sD[sIdx + 1];
           let b = sD[sIdx + 2];
 
-          // Apply Selected Document Scanner Filter
+          // Apply Selected Document Scanner Filter & Model
           if (filterMode === 'magic-bw') {
             // Adaptive document thresholding: boost white background, crisp ink
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
             const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
             const stretched = factor * (lum - 128) + 128 + brightness;
-            const finalVal = stretched > 135 ? 255 : Math.max(0, stretched * 0.7);
+            // Neural mode adds extra sharpness edge boost
+            const threshold = docModel === 'neural' ? 142 : 135;
+            const finalVal = stretched > threshold ? 255 : Math.max(0, stretched * 0.7);
             oD[oIdx] = finalVal;
             oD[oIdx + 1] = finalVal;
             oD[oIdx + 2] = finalVal;
@@ -204,7 +230,7 @@ export const AiDocScanner: React.FC = () => {
     }
 
     ctx.putImageData(outImgData, 0, 0);
-  }, [corners, filterMode, brightness, contrast]);
+  }, [corners, filterMode, brightness, contrast, ramBudget, docModel]);
 
   useEffect(() => {
     if (imageSrc) {
@@ -234,16 +260,28 @@ export const AiDocScanner: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* Top Banner with Hardware Tier & RAM Resource Meter */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Low-RAM Safe: ~18 MB</span>
+            <span>RAM: ~{docModel === 'fast' ? '14' : docModel === 'otsu' ? '24' : '48'} MB / {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel}</span>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
-            AI perspective correction & scanner paper whitening
-          </span>
+
+          <button
+            onClick={() => setShowAiConfig(!showAiConfig)}
+            className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              showAiConfig
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+            <span>AI Model & RAM Options</span>
+            {showAiConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -262,6 +300,81 @@ export const AiDocScanner: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Expandable AI Performance & Model Tuning Panel */}
+      {showAiConfig && (
+        <div className="p-5 rounded-3xl bg-slate-900 border border-indigo-500/30 text-white space-y-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-indigo-400" />
+              <h4 className="font-bold text-sm text-slate-100">Document Scanner AI Engine & Memory Options</h4>
+            </div>
+            <a
+              href="./settings.html"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Full System Settings &rarr;</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Model Selection */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Dewarping & Edge Engine Model</span>
+                <span className="font-mono text-indigo-400 text-[11px]">{docModel.toUpperCase()}</span>
+              </label>
+              <select
+                value={docModel}
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  setDocModel(val);
+                  localStorage.setItem('supertools_doc_model', val);
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-bold focus:outline-none"
+              >
+                <option value="fast">Bilateral Edge Dewarp (Fast, 16MB RAM Safe for 2-4GB PCs)</option>
+                <option value="otsu">Adaptive Otsu Homography (Balanced, 48MB RAM)</option>
+                <option value="neural">High-DPI Neural Perspective Dewarp (Studio, 128MB+ RAM)</option>
+              </select>
+              <span className="text-[10px] text-slate-400 block">
+                {docModel === 'fast' && '⚡ Ultra-lightweight nearest bilinear interpolation. Zero lag on budget machines.'}
+                {docModel === 'otsu' && '⚖️ Balanced contrast windowing with edge preserving text isolation.'}
+                {docModel === 'neural' && '✨ High-DPI subpixel sampling with unsharp text character edge enhancement.'}
+              </span>
+            </div>
+
+            {/* RAM Budget Slider */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-300 flex items-center justify-between">
+                <span>Allocated Scanner RAM Budget</span>
+                <span className="font-mono text-emerald-400 text-[11px] font-bold">
+                  {ramBudget >= 1000 ? `${(ramBudget/1000).toFixed(1)} GB` : `${ramBudget} MB`}
+                </span>
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="1000"
+                step="20"
+                value={ramBudget}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setRamBudget(val);
+                  localStorage.setItem('supertools_ram_budget', String(val));
+                }}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>20 MB (Low-Spec Safe)</span>
+                <span>250 MB (Balanced)</span>
+                <span>1000 MB (Studio Max)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

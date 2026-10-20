@@ -70,7 +70,7 @@ import { TimerTools } from './tools/TimerTools';
 import { ColorTools } from './tools/ColorTools';
 import { MediaTools } from './tools/MediaTools';
 
-import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, LayoutGrid, AppWindow, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, LayoutGrid, AppWindow, ArrowRight, Cpu } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Theme state
@@ -258,13 +258,13 @@ export const App: React.FC = () => {
 
     // Direct High-Priority Power Tools
     if (id === 'ai-bg-remover') return <AiBackgroundRemover hardwareLevel={hardwareLevel} />;
-    if (id === 'ai-doc-scanner') return <AiDocScanner />;
-    if (id === 'ai-text-summarizer') return <AiTextSummarizer />;
-    if (id === 'ai-smart-redactor') return <AiSmartRedactor />;
+    if (id === 'ai-doc-scanner') return <AiDocScanner hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-text-summarizer') return <AiTextSummarizer hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-smart-redactor') return <AiSmartRedactor hardwareLevel={hardwareLevel} />;
     if (id === 'ai-image-upscaler') return <AiImageUpscaler hardwareLevel={hardwareLevel} />;
-    if (id === 'ai-palette-extractor') return <AiPaletteExtractor />;
-    if (id === 'ai-image-colorizer') return <AiImageColorizer />;
-    if (id === 'ai-speech-transcriber') return <AiSpeechTranscriber />;
+    if (id === 'ai-palette-extractor') return <AiPaletteExtractor hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-image-colorizer') return <AiImageColorizer hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-speech-transcriber') return <AiSpeechTranscriber hardwareLevel={hardwareLevel} />;
     if (id === 'auto-photo-processor') return <AutoPhotoProcessor />;
     if (id === 'universal-file-converter') return <UniversalFileConverter />;
     if (id === 'unified-text-forge') return <UnifiedTextForge />;
@@ -464,9 +464,19 @@ export const App: React.FC = () => {
             {/* Atmospheric Hero Banner */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-[#0e1628] text-white p-8 sm:p-12 shadow-2xl border border-indigo-500/20">
               <div className="relative z-10 max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Zero Backend • 100% Client-Side • Safe & Private
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    Zero Backend • 100% Client-Side • Safe & Private
+                  </div>
+                  <a
+                    href="./settings.html"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold tracking-wide transition-all shadow-xs"
+                    title="Adjust RAM Budgets and AI Model Selection in Dedicated Settings Dashboard"
+                  >
+                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>AI Settings &amp; Hardware Tier &rarr;</span>
+                  </a>
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
