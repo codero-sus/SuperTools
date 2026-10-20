@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame } from 'lucide-react';
+import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu } from 'lucide-react';
 import { AmbientEffect } from './effects/AmbientBackground';
+import { getTierByLevel } from '../utils/hardwareScaling';
 
 interface NavbarProps {
   onOpenSearch: () => void;
@@ -13,6 +14,8 @@ interface NavbarProps {
   favoritesCount: number;
   ambientEffect: AmbientEffect;
   onCycleAmbient: () => void;
+  hardwareLevel: number;
+  onOpenHardwareModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,8 +28,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleShowFavorites,
   favoritesCount,
   ambientEffect,
-  onCycleAmbient
+  onCycleAmbient,
+  hardwareLevel,
+  onOpenHardwareModal
 }) => {
+  const activeTier = getTierByLevel(hardwareLevel);
+
   const getAmbientLabel = () => {
     switch (ambientEffect) {
       case 'leaves': return '🍂 Leaves';
@@ -81,6 +88,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right action controls */}
         <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Hardware & AI Resource Scaling Tier Button */}
+          <button
+            onClick={onOpenHardwareModal}
+            className="px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/80 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all flex items-center gap-1.5 shadow-2xs"
+            title={`Hardware AI Scaling: Level ${hardwareLevel} (${activeTier.targetRamGb} GB RAM Target) • Click to scale up or down`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span className="font-mono text-[11px]">{activeTier.shortLabel}</span>
+          </button>
+
           {/* Peaceful Ambient Atmosphere Toggle */}
           <button
             onClick={onCycleAmbient}

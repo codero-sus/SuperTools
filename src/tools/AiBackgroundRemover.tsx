@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Sparkles, Download, Sliders, Eraser, Eye, Layers, Palette, Gauge, Split, Check, ArrowRight } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { getTierByLevel } from '../utils/hardwareScaling';
 
 type BgPreset = 
   | 'transparent' 
@@ -12,7 +13,13 @@ type BgPreset =
   | 'blur' 
   | 'custom';
 
-export const AiBackgroundRemover: React.FC = () => {
+export interface AiBackgroundRemoverProps {
+  hardwareLevel?: number;
+}
+
+export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwareLevel = 3 }) => {
+  const currentTier = getTierByLevel(hardwareLevel);
+
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [tolerance, setTolerance] = useState<number>(32);
@@ -134,8 +141,8 @@ export const AiBackgroundRemover: React.FC = () => {
       return;
     }
 
-    // 80MB RAM Ceiling Protection: Limit dimensions to 1400px
-    const maxDim = ecoRamSafe ? 1400 : 2048;
+    // Adaptive Hardware Resource Scaling Dimension Cap
+    const maxDim = ecoRamSafe ? currentTier.maxCanvasDim : 8192;
     let w = img.width;
     let h = img.height;
     if (w > maxDim || h > maxDim) {
@@ -320,9 +327,9 @@ export const AiBackgroundRemover: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RAM: ~{estimatedRam} MB / 80 MB Max</span>
+            <span>RAM: ~{estimatedRam} MB / {currentTier.maxRamBudgetMb >= 1000 ? `${(currentTier.maxRamBudgetMb / 1000).toFixed(1)} GB` : `${currentTier.maxRamBudgetMb} MB`}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-emerald-600">4-6GB Safe ✅</span>
+            <span className="text-[10px] text-emerald-600 font-mono font-black">{currentTier.shortLabel} Scaling</span>
           </div>
 
           <button
