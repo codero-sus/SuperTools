@@ -11,7 +11,16 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         settings: resolve(__dirname, 'settings.html'),
       },
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-excel': ['xlsx'],
+        },
+      },
     },
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     host: '0.0.0.0',
