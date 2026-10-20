@@ -2,6 +2,28 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
+    "id": "ai-image-colorizer",
+    "name": "AI Vintage Photo Colorizer & Tone Restorer",
+    "category": "Media & Studio",
+    "description": "Revitalize black & white historical photos, sketches, and monochrome portraits with natural neural skin tones, sky hues, and split-screen comparison under 20MB RAM.",
+    "tags": ["ai", "colorizer", "colorize", "vintage photo", "black and white", "restoration", "split slider"],
+    "icon": "Palette",
+    "componentId": "ai-image-colorizer",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-speech-transcriber",
+    "name": "AI Voice & Speech Transcriber Studio",
+    "category": "Media & Studio",
+    "description": "100% client-side live audio transcription, live waveform visualizer, multi-language speech recognition, and instant .SRT/.TXT subtitle export under 8MB RAM.",
+    "tags": ["ai", "speech to text", "transcribe", "voice", "dictation", "audio to text", "subtitles", "srt"],
+    "icon": "Mic",
+    "componentId": "ai-speech-transcriber",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
     "id": "ai-bg-remover",
     "name": "AI Background Remover & Saliency Matting",
     "category": "Media & Studio",

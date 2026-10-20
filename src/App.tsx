@@ -27,6 +27,8 @@ import { AiTextSummarizer } from './tools/AiTextSummarizer';
 import { AiSmartRedactor } from './tools/AiSmartRedactor';
 import { AiImageUpscaler } from './tools/AiImageUpscaler';
 import { AiPaletteExtractor } from './tools/AiPaletteExtractor';
+import { AiImageColorizer } from './tools/AiImageColorizer';
+import { AiSpeechTranscriber } from './tools/AiSpeechTranscriber';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -227,6 +229,8 @@ export const App: React.FC = () => {
     if (id === 'ai-smart-redactor') return <AiSmartRedactor />;
     if (id === 'ai-image-upscaler') return <AiImageUpscaler />;
     if (id === 'ai-palette-extractor') return <AiPaletteExtractor />;
+    if (id === 'ai-image-colorizer') return <AiImageColorizer />;
+    if (id === 'ai-speech-transcriber') return <AiSpeechTranscriber />;
     if (id === 'auto-photo-processor') return <AutoPhotoProcessor />;
     if (id === 'universal-file-converter') return <UniversalFileConverter />;
     if (id === 'unified-text-forge') return <UnifiedTextForge />;

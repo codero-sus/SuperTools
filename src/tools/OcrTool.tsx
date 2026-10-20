@@ -4,7 +4,7 @@ import {
   Upload, FileText, Download, Copy, RefreshCw, Eye, Sparkles, Sliders, 
   RotateCw, RotateCcw, Search, Check, AlertCircle, Cpu, Zap, Receipt, 
   Code2, Globe2, ShieldCheck, CheckCircle2, ChevronRight, Hash, Layers,
-  CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity
+  CreditCard, FileCheck2, PenTool, Sigma, Gauge, Activity, Volume2, VolumeX, Table
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 
@@ -122,6 +122,7 @@ export const OcrTool: React.FC = () => {
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'text' | 'parsed' | 'json'>('text');
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
   // Parsed Specialized Entities
   const [parsedData, setParsedData] = useState<ParsedReceiptData | null>(null);
@@ -130,6 +131,38 @@ export const OcrTool: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Text to Speech
+  const toggleSpeech = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      if (!extractedText) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(extractedText);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const downloadAsCsv = () => {
+    if (!parsedData || parsedData.items.length === 0) return;
+    let csv = "Item Description,Quantity,Price\n";
+    parsedData.items.forEach(it => {
+      csv += `"${it.name.replace(/"/g, '""')}",${it.qty || '1'},"${it.price}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `supertools-receipt-table-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   // 1-Click Realistic Test Demos
   const loadSample = (sampleType: 'receipt' | 'business-card' | 'code' | 'invoice' | 'passport' | 'credit-card' | 'math') => {
@@ -987,9 +1020,11 @@ export const OcrTool: React.FC = () => {
       {/* Low-End PC (4-6GB RAM) Eco Indicator & Sample Bar */}
       <div className="p-4 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
             <Gauge className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Eco RAM Safe: ~{estimatedRamMb} MB</span>
+            <span>RAM: ~{estimatedRamMb} MB / 80 MB Max</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[10px] text-emerald-600">4-6GB Safe ✅</span>
           </div>
 
           <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
@@ -999,7 +1034,7 @@ export const OcrTool: React.FC = () => {
               onChange={(e) => setEcoMode(e.target.checked)}
               className="w-4 h-4 rounded text-emerald-600 accent-emerald-600"
             />
-            <span>Eco Cap (4-6GB RAM Safe)</span>
+            <span>Eco Cap (≤80MB RAM)</span>
           </label>
         </div>
 
@@ -1684,9 +1719,31 @@ export const OcrTool: React.FC = () => {
             <div className="pt-4 mt-auto border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <QuickCopy text={extractedText} label="Copy All Text" />
+                {extractedText && (
+                  <button
+                    onClick={toggleSpeech}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                      isSpeaking
+                        ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 animate-pulse border border-rose-300'
+                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    <span>{isSpeaking ? 'Stop Audio' : 'Read Aloud'}</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
+                {parsedData && parsedData.items.length > 0 && (
+                  <button
+                    onClick={downloadAsCsv}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 font-bold text-xs flex items-center gap-1.5 transition-all"
+                  >
+                    <Table className="w-3.5 h-3.5" />
+                    <span>.CSV Table</span>
+                  </button>
+                )}
                 <button
                   onClick={downloadAsTxt}
                   disabled={!extractedText}

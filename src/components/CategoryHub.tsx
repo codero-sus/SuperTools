@@ -35,11 +35,11 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     subcategories: [
       {
         name: 'AI Media & Vision Studio',
-        toolIds: ['ai-bg-remover', 'ai-image-upscaler', 'auto-photo-processor']
+        toolIds: ['ai-bg-remover', 'ai-image-upscaler', 'ai-image-colorizer', 'auto-photo-processor']
       },
       {
-        name: 'Audio & Stream Grabber',
-        toolIds: ['audio-studio', 'video-downloader-helper', 'screen-recorder']
+        name: 'Audio, Voice & Stream Grabber',
+        toolIds: ['ai-speech-transcriber', 'audio-studio', 'video-downloader-helper', 'screen-recorder']
       },
       {
         name: 'QR & Barcode Utilities',
