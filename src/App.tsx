@@ -37,6 +37,7 @@ import { AiNeuralCodeAssistant } from './tools/AiNeuralCodeAssistant';
 import { AiSentimentToneStudio } from './tools/AiSentimentToneStudio';
 import { AiVisionObjectDetector } from './tools/AiVisionObjectDetector';
 import { AiAudioStemSplitter } from './tools/AiAudioStemSplitter';
+import { AiChatStudio } from './tools/AiChatStudio';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -274,6 +275,7 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
+    if (id === 'ai-chat-studio') return <AiChatStudio hardwareLevel={hardwareLevel} />;
     if (id === 'ai-prompt-studio') return <AiPromptStudio hardwareLevel={hardwareLevel} />;
     if (id === 'ai-neural-code-assistant') return <AiNeuralCodeAssistant hardwareLevel={hardwareLevel} />;
     if (id === 'ai-sentiment-tone-studio') return <AiSentimentToneStudio hardwareLevel={hardwareLevel} />;
@@ -430,6 +432,10 @@ export const App: React.FC = () => {
         onCycleAmbient={cycleAmbient}
         hardwareLevel={hardwareLevel}
         onOpenHardwareModal={() => setHwModalOpen(true)}
+        onOpenAiChat={() => {
+          const chatTool = TOOLS.find(t => t.id === 'ai-chat-studio');
+          if (chatTool) navigateToTool(chatTool);
+        }}
       />
 
       {/* Main Content Area */}

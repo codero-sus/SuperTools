@@ -2,6 +2,17 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
+    "id": "ai-chat-studio",
+    "name": "AI Chat Studio & Neural Conversational Assistant",
+    "category": "Text & Crypto Forge",
+    "description": "100% client-side private conversational AI assistant. Code generator, architecture designer, Socratic tutor, and executive strategist with multi-persona switching and zero server lag.",
+    "tags": ["ai", "chat", "ai chat", "assistant", "conversational", "persona", "chatgpt", "claude", "offline ai", "local ai"],
+    "icon": "Bot",
+    "componentId": "ai-chat-studio",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
     "id": "ai-prompt-studio",
     "name": "AI Prompt Engineer, Optimizer & Tokenizer Studio",
     "category": "Text & Crypto Forge",

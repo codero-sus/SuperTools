@@ -74,8 +74,8 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     gradient: 'from-amber-600/20 via-orange-600/10 to-transparent',
     subcategories: [
       {
-        name: 'AI Text & Privacy Forge',
-        toolIds: ['ai-prompt-studio', 'ai-sentiment-tone-studio', 'ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
+        name: 'AI Neural Assistant & Chat',
+        toolIds: ['ai-chat-studio', 'ai-prompt-studio', 'ai-sentiment-tone-studio', 'ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
       },
       {
         name: 'Text Transformation & Diff',

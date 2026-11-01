@@ -398,6 +398,20 @@
             <span class="text-[10px] text-slate-500 block">Hardware speech recognition tag</span>
           </div>
 
+          <!-- AI Chat Default Persona -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">Default AI Chat Persona</span>
+            <select id="selChatPersona" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="engineer" selected>Staff Principal Engineer (Code & Architecture)</option>
+              <option value="executive">Executive Business Strategist (C-Suite ROI)</option>
+              <option value="copywriter">Creative Wordsmith (Copywriting & Hooks)</option>
+              <option value="scientist">STEM Socratic Tutor (First-Principles Math)</option>
+              <option value="security">SecOps & Linux SysAdmin (Zero-Trust)</option>
+              <option value="coach">Productivity & Life Coach (Focus Systems)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Startup persona for AI Chat Studio</span>
+          </div>
+
           <!-- Prompt Studio Strategy -->
           <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
             <span class="font-bold text-slate-300 block">AI Prompt Reasoning Strategy</span>
@@ -684,6 +698,9 @@
       const audioStemMode = localStorage.getItem('supertools_audio_stem_mode');
       if (audioStemMode) document.getElementById('selAudioStemMode').value = audioStemMode;
 
+      const chatPersona = localStorage.getItem('supertools_chat_persona');
+      if (chatPersona) document.getElementById('selChatPersona').value = chatPersona;
+
       // Cookie storage helpers
       function setCookie(name, value, days = 365) {
         const d = new Date();
@@ -762,6 +779,7 @@
         localStorage.setItem('supertools_sentiment_tone', document.getElementById('selSentimentTone').value);
         localStorage.setItem('supertools_vision_model', document.getElementById('selVisionModel').value);
         localStorage.setItem('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
+        localStorage.setItem('supertools_chat_persona', document.getElementById('selChatPersona').value);
 
         // Mirror to Cookies if enabled
         if (cookiesActive) {
@@ -786,6 +804,7 @@
           setCookie('supertools_sentiment_tone', document.getElementById('selSentimentTone').value);
           setCookie('supertools_vision_model', document.getElementById('selVisionModel').value);
           setCookie('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
+          setCookie('supertools_chat_persona', document.getElementById('selChatPersona').value);
         }
 
         const notification = document.createElement('div');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu, Settings } from 'lucide-react';
+import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu, Settings, Bot } from 'lucide-react';
 import { AmbientEffect } from './effects/AmbientBackground';
 import { getTierByLevel } from '../utils/hardwareScaling';
 
@@ -16,6 +16,7 @@ interface NavbarProps {
   onCycleAmbient: () => void;
   hardwareLevel: number;
   onOpenHardwareModal: () => void;
+  onOpenAiChat?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,7 +31,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   ambientEffect,
   onCycleAmbient,
   hardwareLevel,
-  onOpenHardwareModal
+  onOpenHardwareModal,
+  onOpenAiChat
 }) => {
   const activeTier = getTierByLevel(hardwareLevel);
 
@@ -97,6 +99,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Cpu className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span className="font-mono text-[11px]">{activeTier.shortLabel}</span>
           </button>
+
+          {/* AI Chat Studio Quick Trigger */}
+          {onOpenAiChat && (
+            <button
+              onClick={onOpenAiChat}
+              className="px-2.5 py-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/10 hover:bg-indigo-600/20 text-xs font-bold text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-1.5 shadow-2xs"
+              title="Open 100% Client-Side Private AI Chat Assistant"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">AI Chat</span>
+            </button>
+          )}
 
           {/* Peaceful Ambient Atmosphere Toggle */}
           <button
