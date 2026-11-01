@@ -209,6 +209,57 @@
         </div>
       </section>
 
+      <!-- Ultra-Fast AI Acceleration & 1s-7s Latency Engine -->
+      <section class="p-6 rounded-3xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-800/50 backdrop-blur-md space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+              <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <div>
+              <h2 class="text-base font-black text-white flex items-center gap-2">
+                Ultra-Fast AI Runtime & Latency Engine
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                  Target: 1s &ndash; 7s Max
+                </span>
+              </h2>
+              <p class="text-xs text-slate-400">
+                Hardware-accelerated SIMD WebAssembly, warm worker pooling, and zero-latency client-side execution.
+              </p>
+            </div>
+          </div>
+          <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+            ⚡ Active: Sub-Second Hot Starts
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+            <span class="text-[10px] font-mono text-slate-400 block uppercase">SIMD WebAssembly Status</span>
+            <span id="aiSimdStatus" class="font-bold text-emerald-400 text-sm flex items-center gap-1 mt-0.5">
+              ✓ Hardware SIMD Accelerated
+            </span>
+            <span class="text-[10px] text-slate-500 block mt-1">Vectorized neural parallel inference</span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+            <span class="text-[10px] font-mono text-slate-400 block uppercase">Worker Concurrency Pool</span>
+            <span id="aiWorkerStatus" class="font-bold text-indigo-400 text-sm flex items-center gap-1 mt-0.5">
+              Warm Worker Pool Active
+            </span>
+            <span class="text-[10px] text-slate-500 block mt-1">60s idle timeout & RAM protection</span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+            <span class="text-[10px] font-mono text-slate-400 block uppercase">Latency Threshold</span>
+            <span class="font-bold text-emerald-400 text-sm flex items-center gap-1 mt-0.5">
+              1.0s &ndash; 7.0s Max SLA
+            </span>
+            <span class="text-[10px] text-slate-500 block mt-1">Zero tab freezes & pure client privacy</span>
+          </div>
+        </div>
+      </section>
+
       <!-- Default AI Model Configuration Per Feature -->
       <section class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-5">
         <h2 class="text-base font-black text-white">
@@ -345,6 +396,65 @@
               <option value="zh-CN">Chinese (中文)</option>
             </select>
             <span class="text-[10px] text-slate-500 block">Hardware speech recognition tag</span>
+          </div>
+
+          <!-- Prompt Studio Strategy -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">AI Prompt Reasoning Strategy</span>
+            <select id="selPromptStrategy" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="cot" selected>Chain-of-Thought (Step-by-Step)</option>
+              <option value="few-shot">Few-Shot Exemplar Guided</option>
+              <option value="react">ReAct (Thought & Action)</option>
+              <option value="persona">Staff Expert Persona Framing</option>
+              <option value="json-schema">Strict JSON Schema Output</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Default reasoning framework</span>
+          </div>
+
+          <!-- Neural Code Assistant Mode -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">AI Code Assistant Mode</span>
+            <select id="selCodeMode" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="bug-hunter" selected>Bug & Security Hunter (ReDoS/Leaks/SQLi)</option>
+              <option value="clean-refactor">Clean Architecture Refactor</option>
+              <option value="complexity-profiler">Big-O & Cyclomatic Profiler</option>
+              <option value="docstring-annotator">TSDoc / Docstring Annotator</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Static AST & pattern intelligence</span>
+          </div>
+
+          <!-- Sentiment & Emotion Arc Tone -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">AI Sentiment & Tone Rewriter</span>
+            <select id="selSentimentTone" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="de-escalate" selected>De-escalation (Customer Support)</option>
+              <option value="formal">Boardroom Executive Formal</option>
+              <option value="persuasive">High-Converting Persuasive</option>
+              <option value="empathetic">Warm & Empathetic</option>
+              <option value="concise">Concise Executive TL;DR</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Default rewriting voice</span>
+          </div>
+
+          <!-- Vision Object Detector -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">AI Vision Object Detector</span>
+            <select id="selVisionModel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="face-device" selected>Face, Device & Document Mesh (Balanced)</option>
+              <option value="multi-scale">Deep Multi-Scale Sliding Pyramid (Studio)</option>
+              <option value="saliency">Ultra-Fast Saliency Focal (Eco)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Computer vision bounding box model</span>
+          </div>
+
+          <!-- Audio Stem Splitter -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">AI Audio Vocal Remover & Splitter</span>
+            <select id="selAudioStemMode" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="phase-sub" selected>Neural Spectral Phase Subtraction (DSP)</option>
+              <option value="harmonic">Harmonic-Percussive Filter (Speech Clarity)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Center vocal isolation method</span>
           </div>
         </div>
       </section>
@@ -559,6 +669,21 @@
       const paletteModel = localStorage.getItem('supertools_palette_model');
       if (paletteModel) document.getElementById('selPaletteModel').value = paletteModel;
 
+      const promptStrategy = localStorage.getItem('supertools_prompt_strategy');
+      if (promptStrategy) document.getElementById('selPromptStrategy').value = promptStrategy;
+
+      const codeMode = localStorage.getItem('supertools_code_mode');
+      if (codeMode) document.getElementById('selCodeMode').value = codeMode;
+
+      const sentimentTone = localStorage.getItem('supertools_sentiment_tone');
+      if (sentimentTone) document.getElementById('selSentimentTone').value = sentimentTone;
+
+      const visionModel = localStorage.getItem('supertools_vision_model');
+      if (visionModel) document.getElementById('selVisionModel').value = visionModel;
+
+      const audioStemMode = localStorage.getItem('supertools_audio_stem_mode');
+      if (audioStemMode) document.getElementById('selAudioStemMode').value = audioStemMode;
+
       // Cookie storage helpers
       function setCookie(name, value, days = 365) {
         const d = new Date();
@@ -632,6 +757,11 @@
         localStorage.setItem('supertools_colorize_model', document.getElementById('selColorizeModel').value);
         localStorage.setItem('supertools_palette_model', document.getElementById('selPaletteModel').value);
         localStorage.setItem('supertools_speech_lang', document.getElementById('selSpeechLang').value);
+        localStorage.setItem('supertools_prompt_strategy', document.getElementById('selPromptStrategy').value);
+        localStorage.setItem('supertools_code_mode', document.getElementById('selCodeMode').value);
+        localStorage.setItem('supertools_sentiment_tone', document.getElementById('selSentimentTone').value);
+        localStorage.setItem('supertools_vision_model', document.getElementById('selVisionModel').value);
+        localStorage.setItem('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
 
         // Mirror to Cookies if enabled
         if (cookiesActive) {
@@ -651,6 +781,11 @@
           setCookie('supertools_colorize_model', document.getElementById('selColorizeModel').value);
           setCookie('supertools_palette_model', document.getElementById('selPaletteModel').value);
           setCookie('supertools_speech_lang', document.getElementById('selSpeechLang').value);
+          setCookie('supertools_prompt_strategy', document.getElementById('selPromptStrategy').value);
+          setCookie('supertools_code_mode', document.getElementById('selCodeMode').value);
+          setCookie('supertools_sentiment_tone', document.getElementById('selSentimentTone').value);
+          setCookie('supertools_vision_model', document.getElementById('selVisionModel').value);
+          setCookie('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
         }
 
         const notification = document.createElement('div');

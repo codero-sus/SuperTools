@@ -35,11 +35,11 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     subcategories: [
       {
         name: 'AI Media & Vision Studio',
-        toolIds: ['ai-bg-remover', 'ai-image-upscaler', 'ai-image-colorizer', 'auto-photo-processor']
+        toolIds: ['ai-bg-remover', 'ai-vision-object-detector', 'ai-image-upscaler', 'ai-image-colorizer', 'auto-photo-processor']
       },
       {
         name: 'Audio, Voice & Stream Grabber',
-        toolIds: ['ai-speech-transcriber', 'audio-studio', 'video-downloader-helper', 'screen-recorder']
+        toolIds: ['ai-audio-stem-splitter', 'ai-speech-transcriber', 'audio-studio', 'video-downloader-helper', 'screen-recorder']
       },
       {
         name: 'QR & Barcode Utilities',
@@ -70,12 +70,12 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Text & Crypto Forge',
     name: 'Text & Crypto Security Forge',
     icon: 'Sparkles',
-    description: 'AI TextRank document summarizer, smart privacy redactor, 1337 Leet Speak, Base64, Hex, AES encryption, and RSA key pairs.',
+    description: 'AI prompt optimizer, sentiment arc studio, TextRank summarizer, privacy redactor, AES encryption, and RSA key pairs.',
     gradient: 'from-amber-600/20 via-orange-600/10 to-transparent',
     subcategories: [
       {
         name: 'AI Text & Privacy Forge',
-        toolIds: ['ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
+        toolIds: ['ai-prompt-studio', 'ai-sentiment-tone-studio', 'ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
       },
       {
         name: 'Text Transformation & Diff',
@@ -92,20 +92,24 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     id: 'Code & Web Lab',
     name: 'Developer & Web Lab',
     icon: 'Code2',
-    description: 'JSON formatter, JWT inspector, Linux permissions chmod, cron studio, live regex tester, and UUIDs.',
+    description: 'AI neural code assistant & bug hunter, JSON formatter, JWT inspector, Linux chmod, cron studio, and regex tester.',
     gradient: 'from-cyan-600/20 via-blue-600/10 to-transparent',
     subcategories: [
+      {
+        name: 'AI Code Intelligence & Analysis',
+        toolIds: ['ai-neural-code-assistant', 'sql-formatter', 'curl-to-fetch']
+      },
       {
         name: 'Data & Tokens',
         toolIds: ['json-formatter', 'jwt-decoder', 'uuid-v4']
       },
       {
         name: 'System & Scheduling',
-        toolIds: ['cron-helper', 'chmod-calculator', 'curl-to-fetch']
+        toolIds: ['cron-helper', 'chmod-calculator']
       },
       {
         name: 'Testing & Social SEO',
-        toolIds: ['regex-tester', 'keycode-inspector', 'meta-tag-generator', 'sql-formatter']
+        toolIds: ['regex-tester', 'keycode-inspector', 'meta-tag-generator']
       }
     ]
   },

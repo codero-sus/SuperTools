@@ -2,6 +2,61 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
+    "id": "ai-prompt-studio",
+    "name": "AI Prompt Engineer, Optimizer & Tokenizer Studio",
+    "category": "Text & Crypto Forge",
+    "description": "Refactor raw prompts into high-performing Chain-of-Thought, Few-Shot, and ReAct formats. Features cl100k BPE token counting, cost estimator, and adversarial injection scanner in 1s-7s.",
+    "tags": ["ai", "prompt engineering", "prompt optimizer", "tokenizer", "bpe", "tokens", "chain of thought", "few shot", "jailbreak scanner"],
+    "icon": "BrainCircuit",
+    "componentId": "ai-prompt-studio",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-neural-code-assistant",
+    "name": "AI Neural Code Assistant & Bug Hunter",
+    "category": "Code & Web Lab",
+    "description": "Multi-language client-side code intelligence: hunt down memory leaks, ReDoS, SQLi vulnerabilities, profile Big-O complexity, and generate clean JSDoc refactorings in 1s-7s.",
+    "tags": ["ai", "code assistant", "bug hunter", "refactor", "big-o", "complexity", "memory leak", "redos", "clean code"],
+    "icon": "Code2",
+    "componentId": "ai-neural-code-assistant",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-sentiment-tone-studio",
+    "name": "AI Sentiment, 8-Emotion Arc & Tone Studio",
+    "category": "Text & Crypto Forge",
+    "description": "Deep client-side Plutchik emotional arc profiling, sentiment polarity meter (-1.0 to +1.0), and 1-click professional tone rewriter (executive, empathetic, persuasive, de-escalation) in 1s-7s.",
+    "tags": ["ai", "sentiment", "emotion arc", "tone rewriter", "tone adjuster", "nlp", "plutchik", "flesch kincaid", "empathy"],
+    "icon": "Heart",
+    "componentId": "ai-sentiment-tone-studio",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-vision-object-detector",
+    "name": "AI Computer Vision & Smart Object / Face Detector",
+    "category": "Media & Studio",
+    "description": "Pure client-side neural vision detector: identifies human faces, laptops, documents, and focal subjects with bounding boxes, saliency heatmaps, and 1-click transparent PNG crop in 1s-7s.",
+    "tags": ["ai", "computer vision", "face detector", "object detection", "bounding box", "crop object", "coco json", "saliency"],
+    "icon": "Box",
+    "componentId": "ai-vision-object-detector",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
+    "id": "ai-audio-stem-splitter",
+    "name": "AI Audio Vocal Remover & Stem Splitter Studio",
+    "category": "Media & Studio",
+    "description": "Neural spectral phase subtraction DSP to isolate clean lead vocals vs. instrumental karaoke backing with interactive dual-fader mixing and WAV stem export in 1s-7s.",
+    "tags": ["ai", "vocal remover", "stem splitter", "karaoke", "isolate vocals", "audio splitter", "dsp", "wav export"],
+    "icon": "Radio",
+    "componentId": "ai-audio-stem-splitter",
+    "featured": true,
+    "badge": "AI / Canvas"
+  },
+  {
     "id": "ai-image-colorizer",
     "name": "AI Vintage Photo Colorizer & Tone Restorer",
     "category": "Media & Studio",

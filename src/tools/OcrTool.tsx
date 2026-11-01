@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 import { getTierByLevel } from '../utils/hardwareScaling';
+import { getWarmOcrWorker } from '../utils/aiEngineManager';
 
 // OCR Engine Models
 export type OcrModelType = 
@@ -785,26 +786,19 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
         setStatusMessage(`Initializing LSTM Neural Model (${selectedLanguage.toUpperCase()})...`);
         setProgress(25);
 
-        const { createWorker } = await import('tesseract.js');
-        const worker = await createWorker(selectedLanguage, currentTier.workerThreads, {
-          workerPath: `${window.location.origin}/tesseract/worker.min.js`,
-          corePath: `${window.location.origin}/tesseract`,
-          langPath: `${window.location.origin}/tesseract/tessdata`,
-          cacheMethod: 'write',
-          gzip: true,
-          logger: (m) => {
-            if (m.status === 'recognizing text') {
-              setStatusMessage(`Neural Inference: ${Math.round(m.progress * 100)}%`);
-              setProgress(Math.round(30 + m.progress * 60));
-            } else if (m.status === 'loading tesseract core') {
-              setStatusMessage('Loading SIMD WebAssembly Core...');
-              setProgress(20);
-            } else if (m.status === 'loading language traineddata') {
-              setStatusMessage(`Loading ${selectedLanguage.toUpperCase()} LSTM weights...`);
-              setProgress(25);
-            }
+        const { worker, isWarm } = await getWarmOcrWorker(
+          selectedLanguage,
+          currentTier.workerThreads,
+          (msg, pct) => {
+            setStatusMessage(msg);
+            setProgress(pct);
           }
-        });
+        );
+
+        if (isWarm) {
+          setStatusMessage(`Hot cache active: executing instant inference...`);
+          setProgress(50);
+        }
 
         // Configure PSM and Whitelists
         await worker.setParameters({
@@ -850,9 +844,6 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
             });
           }
         }
-
-        // Explicitly terminate to free RAM on 4-6GB PCs immediately!
-        await worker.terminate();
       } catch (neuralErr) {
         console.warn('Tesseract LSTM worker failed, switching to guaranteed secondary engine:', neuralErr);
       }
@@ -1439,7 +1430,9 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
                   {processingTimeMs > 0 && (
                     <>
                       <span>•</span>
-                      <span>{processingTimeMs} ms</span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">
+                        <Zap className="w-3 h-3" /> {(processingTimeMs / 1000).toFixed(2)}s (Ultra-Fast)
+                      </span>
                     </>
                   )}
                   {detectedLines.length > 0 && (

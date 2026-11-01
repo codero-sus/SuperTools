@@ -32,6 +32,11 @@ import { AiImageUpscaler } from './tools/AiImageUpscaler';
 import { AiPaletteExtractor } from './tools/AiPaletteExtractor';
 import { AiImageColorizer } from './tools/AiImageColorizer';
 import { AiSpeechTranscriber } from './tools/AiSpeechTranscriber';
+import { AiPromptStudio } from './tools/AiPromptStudio';
+import { AiNeuralCodeAssistant } from './tools/AiNeuralCodeAssistant';
+import { AiSentimentToneStudio } from './tools/AiSentimentToneStudio';
+import { AiVisionObjectDetector } from './tools/AiVisionObjectDetector';
+import { AiAudioStemSplitter } from './tools/AiAudioStemSplitter';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -269,6 +274,11 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
+    if (id === 'ai-prompt-studio') return <AiPromptStudio hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-neural-code-assistant') return <AiNeuralCodeAssistant hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-sentiment-tone-studio') return <AiSentimentToneStudio hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-vision-object-detector') return <AiVisionObjectDetector hardwareLevel={hardwareLevel} />;
+    if (id === 'ai-audio-stem-splitter') return <AiAudioStemSplitter hardwareLevel={hardwareLevel} />;
     if (id === 'ai-bg-remover') return <AiBackgroundRemover hardwareLevel={hardwareLevel} />;
     if (id === 'ai-doc-scanner') return <AiDocScanner hardwareLevel={hardwareLevel} />;
     if (id === 'ai-text-summarizer') return <AiTextSummarizer hardwareLevel={hardwareLevel} />;
