@@ -20,7 +20,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: 2. Fast-forward / cleanly sync local files to match remote
-echo [2/4] Syncing local files to latest commit...
+echo [2/5] Syncing local files to latest commit...
 git reset --hard FETCH_HEAD
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Git sync failed!
