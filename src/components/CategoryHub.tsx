@@ -75,7 +75,7 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     subcategories: [
       {
         name: 'AI Neural Assistant & Chat',
-        toolIds: ['ai-chat-studio', 'ai-prompt-studio', 'ai-sentiment-tone-studio', 'ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
+        toolIds: ['in-ram-mini-ai', 'ai-chat-studio', 'ai-prompt-studio', 'ai-sentiment-tone-studio', 'ai-text-summarizer', 'ai-smart-redactor', 'privacy-vault']
       },
       {
         name: 'Text Transformation & Diff',
@@ -97,7 +97,7 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
     subcategories: [
       {
         name: 'AI Code Intelligence & Analysis',
-        toolIds: ['ai-neural-code-assistant', 'sql-formatter', 'curl-to-fetch']
+        toolIds: ['in-ram-mini-ai', 'ai-neural-code-assistant', 'sql-formatter', 'curl-to-fetch']
       },
       {
         name: 'Data & Tokens',

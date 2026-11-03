@@ -38,6 +38,7 @@ import { AiSentimentToneStudio } from './tools/AiSentimentToneStudio';
 import { AiVisionObjectDetector } from './tools/AiVisionObjectDetector';
 import { AiAudioStemSplitter } from './tools/AiAudioStemSplitter';
 import { AiChatStudio } from './tools/AiChatStudio';
+import { InRamMiniAiStudio } from './tools/InRamMiniAiStudio';
 
 // Supporting Suite Tools
 import { TextTools } from './tools/TextTools';
@@ -77,7 +78,7 @@ import { TimerTools } from './tools/TimerTools';
 import { ColorTools } from './tools/ColorTools';
 import { MediaTools } from './tools/MediaTools';
 
-import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, LayoutGrid, AppWindow, ArrowRight, Cpu } from 'lucide-react';
+import { Sparkles, ArrowLeft, Heart, ShieldCheck, Layers, LayoutGrid, AppWindow, ArrowRight, Cpu, Brain, Bot, Wand2, FileArchive, ScanText, Zap } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Theme state
@@ -275,6 +276,7 @@ export const App: React.FC = () => {
     const mode = activeTool.mode;
 
     // Direct High-Priority Power Tools
+    if (id === 'in-ram-mini-ai') return <InRamMiniAiStudio hardwareLevel={hardwareLevel} />;
     if (id === 'ai-chat-studio') return <AiChatStudio hardwareLevel={hardwareLevel} />;
     if (id === 'ai-prompt-studio') return <AiPromptStudio hardwareLevel={hardwareLevel} />;
     if (id === 'ai-neural-code-assistant') return <AiNeuralCodeAssistant hardwareLevel={hardwareLevel} />;
@@ -436,6 +438,10 @@ export const App: React.FC = () => {
           const chatTool = TOOLS.find(t => t.id === 'ai-chat-studio');
           if (chatTool) navigateToTool(chatTool);
         }}
+        onOpenMiniAi={() => {
+          const miniAiTool = TOOLS.find(t => t.id === 'in-ram-mini-ai');
+          if (miniAiTool) navigateToTool(miniAiTool);
+        }}
       />
 
       {/* Main Content Area */}
@@ -564,6 +570,119 @@ export const App: React.FC = () => {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Spotlight Powerhouse Engines Row */}
+            {!isBrowsingSpecificCategory && !showFavoritesOnly && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
+                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-400">
+                      Featured Powerhouse Engines
+                    </h2>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-slate-400">100% Client-Side • Sub-Second</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Spotlight 1: In-RAM Mini AI */}
+                  <div
+                    onClick={() => {
+                      const t = TOOLS.find(x => x.id === 'in-ram-mini-ai');
+                      if (t) navigateToTool(t);
+                    }}
+                    className="p-5 rounded-3xl bg-gradient-to-br from-violet-900/40 via-slate-900/60 to-indigo-950/40 border border-violet-500/30 hover:border-violet-400/60 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1 relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-2xl bg-violet-500/20 border border-violet-400/40 flex items-center justify-center text-violet-300 group-hover:scale-110 transition-transform">
+                        <Brain className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/40">
+                        In-RAM 0.4ms
+                      </span>
+                    </div>
+                    <h3 className="font-black text-sm text-white group-hover:text-violet-300 transition-colors">
+                      In-RAM Mini AI Engine
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      TypedArray neural generation, live backprop fine-tuning & sub-millisecond vector RAG memory bank.
+                    </p>
+                  </div>
+
+                  {/* Spotlight 2: AI Chat Studio */}
+                  <div
+                    onClick={() => {
+                      const t = TOOLS.find(x => x.id === 'ai-chat-studio');
+                      if (t) navigateToTool(t);
+                    }}
+                    className="p-5 rounded-3xl bg-gradient-to-br from-indigo-900/40 via-slate-900/60 to-slate-950/40 border border-indigo-500/30 hover:border-indigo-400/60 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 group-hover:scale-110 transition-transform">
+                        <Bot className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                        Multi-Persona
+                      </span>
+                    </div>
+                    <h3 className="font-black text-sm text-white group-hover:text-indigo-300 transition-colors">
+                      AI Chat Studio
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      Conversational Staff Engineer, Executive Strategist, Socratic Tutor & Security Lead with zero server lag.
+                    </p>
+                  </div>
+
+                  {/* Spotlight 3: Auto Photo Processor */}
+                  <div
+                    onClick={() => {
+                      const t = TOOLS.find(x => x.id === 'auto-photo-processor');
+                      if (t) navigateToTool(t);
+                    }}
+                    className="p-5 rounded-3xl bg-gradient-to-br from-emerald-900/40 via-slate-900/60 to-slate-950/40 border border-emerald-500/30 hover:border-emerald-400/60 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 group-hover:scale-110 transition-transform">
+                        <Wand2 className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        1-Click Enhance
+                      </span>
+                    </div>
+                    <h3 className="font-black text-sm text-white group-hover:text-emerald-300 transition-colors">
+                      Auto Photo Processor
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      Batch exposure balance, saturation tone curves, clarity filter, and instant side-by-side comparison.
+                    </p>
+                  </div>
+
+                  {/* Spotlight 4: Universal File Converter */}
+                  <div
+                    onClick={() => {
+                      const t = TOOLS.find(x => x.id === 'universal-file-converter');
+                      if (t) navigateToTool(t);
+                    }}
+                    className="p-5 rounded-3xl bg-gradient-to-br from-cyan-900/40 via-slate-900/60 to-slate-950/40 border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform">
+                        <FileArchive className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                        12+ Formats
+                      </span>
+                    </div>
+                    <h3 className="font-black text-sm text-white group-hover:text-cyan-300 transition-colors">
+                      Universal File Converter
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      Transform XLSX, CSV, JSON, Markdown, PDF, WebP, PNG, ICO, SVG, and ZIP bundles 100% offline.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

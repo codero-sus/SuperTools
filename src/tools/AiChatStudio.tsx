@@ -8,6 +8,7 @@ import {
 import { QuickCopy } from '../components/QuickCopy';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
+import { getInRamNeuralEngine } from '../utils/inRamNeuralAi';
 
 interface AiChatStudioProps {
   hardwareLevel?: number;
@@ -23,7 +24,7 @@ export interface ChatMessage {
 }
 
 type PersonaType = 'engineer' | 'executive' | 'copywriter' | 'scientist' | 'security' | 'coach';
-type ProviderType = 'local-engine' | 'openai' | 'anthropic' | 'gemini' | 'ollama';
+type ProviderType = 'local-engine' | 'in-ram-neural' | 'openai' | 'anthropic' | 'gemini' | 'ollama';
 
 const PERSONAS: Record<PersonaType, { name: string; title: string; icon: string; systemPrompt: string; color: string }> = {
   engineer: {
@@ -228,6 +229,40 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
       }
     }
 
+    // Pure In-RAM Mini Neural Model Engine (Float32Array TypedArrays in browser RAM, sub-millisecond per token)
+    if (provider === 'in-ram-neural') {
+      const ramEngine = getInRamNeuralEngine();
+      let streamed = '';
+      try {
+        const result = await ramEngine.generateStreaming(text, {
+          maxTokens: 56,
+          temperature: 0.7,
+          onToken: (tok) => {
+            streamed += (streamed ? ' ' : '') + tok;
+            setStreamingContent(streamed);
+          }
+        });
+        const elapsed = sw.total();
+        setLastLatencySec(`${(elapsed / 1000).toFixed(2)}s`);
+        setStreamingContent('');
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: `🧠 **In-RAM Neural Stream (${result.telemetry.timePerTokenMs}ms/token • ${result.telemetry.tokensPerSecond} tok/s in RAM):**\n\n${result.text}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            latencyMs: elapsed,
+            tokensCount: result.telemetry.generatedTokens
+          }
+        ]);
+        setIsGenerating(false);
+        return;
+      } catch (err) {
+        console.warn('In-RAM neural inference error:', err);
+      }
+    }
+
     // Default Ultra-Fast Client-Side Local Engine with Typewriter Token Streaming (1.2s - 2.2s total)
     const fullResponse = synthesizeLocalAiResponse(text, persona);
     const words = fullResponse.split(' ');
@@ -389,7 +424,8 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                 onChange={(e) => setProvider(e.target.value as ProviderType)}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold focus:outline-none"
               >
-                <option value="local-engine">Built-In Local Engine (Default, Free & Offline)</option>
+                <option value="local-engine">⚡ Local Fast Hybrid Engine (1s-2s, Free & Offline)</option>
+                <option value="in-ram-neural">🧠 Pure In-RAM Mini Neural AI (0.4ms / tok, Float32Array in RAM)</option>
                 <option value="openai">OpenAI (Direct Client Fetch)</option>
                 <option value="anthropic">Anthropic Claude (Direct Client Fetch)</option>
                 <option value="ollama">Local Ollama (http://localhost:11434)</option>
@@ -439,7 +475,9 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-bold text-slate-300">Active: {PERSONAS[persona].title}</span>
-            <span className="text-[10px] font-mono text-slate-500">({provider === 'local-engine' ? 'Local Neural Engine' : provider.toUpperCase()})</span>
+            <span className="text-[10px] font-mono text-slate-500">
+              ({provider === 'local-engine' ? 'Local Fast Engine' : provider === 'in-ram-neural' ? 'In-RAM Mini Neural AI' : provider.toUpperCase()})
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5">

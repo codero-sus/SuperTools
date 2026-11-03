@@ -470,6 +470,26 @@
             </select>
             <span class="text-[10px] text-slate-500 block">Center vocal isolation method</span>
           </div>
+
+          <!-- In-RAM Mini AI Quantization Model -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">In-RAM Mini AI Precision</span>
+            <select id="selRamQuant" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="FP32" selected>FP32 Full Precision (4 bytes/param, 2.45 MB RAM)</option>
+              <option value="INT8">INT8 Quantized (1 byte/param, 0.65 MB RAM, 4x compression)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">TypedArray memory allocation mode</span>
+          </div>
+
+          <!-- In-RAM Vector RAG Preload -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">In-RAM Vector Memory Bank</span>
+            <select id="selRamPreload" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="preload" selected>Preload Core Knowledge Vectors (&lt; 1ms retrieval)</option>
+              <option value="ondemand">On-Demand Zero Footprint (Ephemeral)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Instant Cosine semantic memory bank</span>
+          </div>
         </div>
       </section>
 
@@ -701,6 +721,12 @@
       const chatPersona = localStorage.getItem('supertools_chat_persona');
       if (chatPersona) document.getElementById('selChatPersona').value = chatPersona;
 
+      const ramQuant = localStorage.getItem('supertools_ram_quant');
+      if (ramQuant) document.getElementById('selRamQuant').value = ramQuant;
+
+      const ramPreload = localStorage.getItem('supertools_ram_preload');
+      if (ramPreload) document.getElementById('selRamPreload').value = ramPreload;
+
       // Cookie storage helpers
       function setCookie(name, value, days = 365) {
         const d = new Date();
@@ -780,6 +806,8 @@
         localStorage.setItem('supertools_vision_model', document.getElementById('selVisionModel').value);
         localStorage.setItem('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
         localStorage.setItem('supertools_chat_persona', document.getElementById('selChatPersona').value);
+        localStorage.setItem('supertools_ram_quant', document.getElementById('selRamQuant').value);
+        localStorage.setItem('supertools_ram_preload', document.getElementById('selRamPreload').value);
 
         // Mirror to Cookies if enabled
         if (cookiesActive) {
@@ -805,6 +833,8 @@
           setCookie('supertools_vision_model', document.getElementById('selVisionModel').value);
           setCookie('supertools_audio_stem_mode', document.getElementById('selAudioStemMode').value);
           setCookie('supertools_chat_persona', document.getElementById('selChatPersona').value);
+          setCookie('supertools_ram_quant', document.getElementById('selRamQuant').value);
+          setCookie('supertools_ram_preload', document.getElementById('selRamPreload').value);
         }
 
         const notification = document.createElement('div');

@@ -24,6 +24,8 @@ export const ToolCard: React.FC<ToolCardProps> = ({
         return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
       case 'AI / Canvas':
         return 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30';
+      case 'In-RAM AI':
+        return 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/40 font-black';
       case 'Privacy':
         return 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30';
       default:

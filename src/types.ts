@@ -21,7 +21,7 @@ export interface ToolItem {
   componentId: string;
   mode?: string;
   featured?: boolean;
-  badge?: 'New' | 'Popular' | 'AI / Canvas' | 'Privacy' | 'Pro';
+  badge?: 'New' | 'Popular' | 'AI / Canvas' | 'Privacy' | 'Pro' | 'In-RAM AI';
 }
 
 export interface ToastMessage {

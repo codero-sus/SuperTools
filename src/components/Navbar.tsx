@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu, Settings, Bot } from 'lucide-react';
+import { Search, Sparkles, Moon, Sun, Star, Wrench, Leaf, CloudRain, Flame, Cpu, Settings, Bot, Brain } from 'lucide-react';
 import { AmbientEffect } from './effects/AmbientBackground';
 import { getTierByLevel } from '../utils/hardwareScaling';
 
@@ -17,6 +17,7 @@ interface NavbarProps {
   hardwareLevel: number;
   onOpenHardwareModal: () => void;
   onOpenAiChat?: () => void;
+  onOpenMiniAi?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,7 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onCycleAmbient,
   hardwareLevel,
   onOpenHardwareModal,
-  onOpenAiChat
+  onOpenAiChat,
+  onOpenMiniAi
 }) => {
   const activeTier = getTierByLevel(hardwareLevel);
 
@@ -99,6 +101,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Cpu className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span className="font-mono text-[11px]">{activeTier.shortLabel}</span>
           </button>
+
+          {/* In-RAM Mini AI Quick Trigger */}
+          {onOpenMiniAi && (
+            <button
+              onClick={onOpenMiniAi}
+              className="px-2.5 py-1.5 rounded-xl border border-violet-500/40 bg-violet-600/10 hover:bg-violet-600/20 text-xs font-bold text-violet-600 dark:text-violet-400 transition-all flex items-center gap-1.5 shadow-2xs group"
+              title="Open In-RAM Mini AI Neural Engine (Sub-Millisecond Inference & In-Memory RAG)"
+            >
+              <Brain className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline font-mono text-[11px]">Mini AI (RAM)</span>
+            </button>
+          )}
 
           {/* AI Chat Studio Quick Trigger */}
           {onOpenAiChat && (

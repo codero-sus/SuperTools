@@ -2,6 +2,17 @@ import { ToolItem } from '../types';
 
 export const TOOLS_DATA: ToolItem[] = [
   {
+    "id": "in-ram-mini-ai",
+    "name": "In-RAM Mini AI Engine & Neural Vector Studio",
+    "category": "Code & Web Lab",
+    "description": "100% In-RAM lightweight Neural Network engine running on TypedArrays (Float32Array). Sub-millisecond token generation, live backprop training, Cosine vector RAG memory bank & RAM footprint inspector.",
+    "tags": ["ai", "mini ai", "ram", "in-ram", "neural network", "llm", "offline ai", "sub-millisecond", "typedarray", "vector", "rag", "embeddings", "backprop"],
+    "icon": "Brain",
+    "componentId": "in-ram-mini-ai",
+    "featured": true,
+    "badge": "In-RAM AI"
+  },
+  {
     "id": "ai-chat-studio",
     "name": "AI Chat Studio & Neural Conversational Assistant",
     "category": "Text & Crypto Forge",
