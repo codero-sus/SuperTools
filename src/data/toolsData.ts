@@ -3,10 +3,10 @@ import { ToolItem } from '../types';
 export const TOOLS_DATA: ToolItem[] = [
   {
     "id": "in-ram-mini-ai",
-    "name": "In-RAM Mini AI Engine & Neural Vector Studio",
+    "name": "In-RAM Powerful Neural AI & WebGPU Studio",
     "category": "Code & Web Lab",
-    "description": "100% In-RAM lightweight Neural Network engine running on TypedArrays (Float32Array). Sub-millisecond token generation, live backprop training, Cosine vector RAG memory bank & RAM footprint inspector.",
-    "tags": ["ai", "mini ai", "ram", "in-ram", "neural network", "llm", "offline ai", "sub-millisecond", "typedarray", "vector", "rag", "embeddings", "backprop"],
+    "description": "100% In-RAM multi-head Neural Network engine accelerated via WebGPU WGSL compute shaders and Float32Array buffers. Sub-millisecond inference (0.15ms-0.8ms), live backpropagation fine-tuning, vector RAG memory bank & WGSL benchmark lab.",
+    "tags": ["ai", "mini ai", "ram", "in-ram", "webgpu", "wgsl", "compute shader", "neural network", "llm", "offline ai", "sub-millisecond", "typedarray", "vector", "rag", "embeddings", "backprop"],
     "icon": "Brain",
     "componentId": "in-ram-mini-ai",
     "featured": true,

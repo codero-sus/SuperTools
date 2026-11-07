@@ -3,41 +3,43 @@ import {
   Cpu, Zap, Brain, Activity, Database, Sparkles, Send, RefreshCw, 
   Download, Upload, Sliders, Check, Copy, ArrowRight, Play, Square,
   Layers, HardDrive, ShieldCheck, Terminal, BookOpen, Search, Plus, 
-  Trash2, AlertCircle, BarChart3, HelpCircle, Flame
+  Trash2, AlertCircle, BarChart3, HelpCircle, Flame, Gauge, Laptop
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 import { 
   getInRamNeuralEngine, InRamNeuralEngine, RamMemoryStats, 
-  TrainingLossRecord, MemoryBankItem, VectorSearchResult, GenerationTelemetry 
+  TrainingLossRecord, MemoryBankItem, VectorSearchResult, GenerationTelemetry,
+  ModelProfileTier, MODEL_TIER_CONFIGS
 } from '../utils/inRamNeuralAi';
+import { getWebGpuAiEngine, WebGpuAiEngine, WebGpuBenchmarkResult, WebGpuDeviceInfo } from '../utils/webGpuAiEngine';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 
 interface InRamMiniAiStudioProps {
   hardwareLevel?: number;
 }
 
-type StudioTab = 'generator' | 'vector-rag' | 'trainer' | 'inspector';
+type StudioTab = 'generator' | 'vector-rag' | 'trainer' | 'webgpu-bench' | 'inspector';
 
 const PROMPT_PRESETS = [
-  { label: '🧠 Neural Logic', text: 'Explain how neural network attention layers compute vector weights in browser RAM.' },
+  { label: '🧠 Neural Logic', text: 'Explain how multi-head attention computes parallel vector weights in browser RAM.' },
+  { label: '🚀 WebGPU vs SIMD', text: 'Compare WebGPU WGSL compute shaders with CPU WebAssembly SIMD for tensor multiplication.' },
   { label: '💻 TypeScript Hook', text: 'Provide a resilient React hook using TypedArrays for client-side state caching.' },
   { label: '🛡️ Zero-Trust Security', text: 'Explain the privacy advantage of 100% in-browser client-side execution over cloud APIs.' },
-  { label: '⚡ SIMD vs Workers', text: 'Compare WebAssembly SIMD vector instructions with multi-threaded Web Workers.' },
   { label: '📊 Algorithm Profiling', text: 'How do Float32Array loop-unrolled dot products achieve sub-millisecond latency?' }
 ];
 
 const TRAINING_PRESETS = [
   {
     title: 'SuperTools Client-Side Philosophy',
-    text: 'SuperTools runs 100 percent client-side with zero backend and zero telemetry. User data never leaves local browser memory. WebAssembly SIMD and Web Workers power sub-second neural inference and document processing.'
+    text: 'SuperTools runs 100 percent client-side with zero backend and zero telemetry. User data never leaves local browser memory. WebGPU WGSL compute shaders and Web Workers power sub-second neural inference and document processing.'
   },
   {
     title: 'React Performance & TypedArrays',
     text: 'Contiguous Float32Array memory buffers provide cache-friendly linear access patterns for high-throughput browser computation without triggering garbage collection pauses.'
   },
   {
-    title: 'Adaptive Hardware Scaling',
-    text: 'Hardware resource scaling dynamically adapts memory budgets from Level 1 two gigabyte legacy machines to Level 10 two hundred fifty six gigabyte high-performance workstations.'
+    title: 'WebGPU Compute Acceleration',
+    text: 'WebGPU dispatches parallel compute workgroups across hundreds of physical GPU execution cores for massive matrix multiplications and high-dimensional vector embeddings.'
   }
 ];
 
@@ -45,12 +47,14 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   const currentTier = getTierByLevel(hardwareLevel);
   const ramBudgetMb = useMemo(() => getUserRamBudgetMb(hardwareLevel), [hardwareLevel]);
 
-  // Engine instance held in RAM
+  // Engine instances
   const engine = useMemo(() => getInRamNeuralEngine(), []);
+  const webGpuEngine = useMemo(() => getWebGpuAiEngine(), []);
 
   // UI state
   const [activeTab, setActiveTab] = useState<StudioTab>('generator');
   const [ramStats, setRamStats] = useState<RamMemoryStats>(() => engine.getRamStats());
+  const [gpuInfo, setGpuInfo] = useState<WebGpuDeviceInfo>(() => webGpuEngine.getDeviceInfo());
 
   // Generation state
   const [prompt, setPrompt] = useState<string>(PROMPT_PRESETS[0].text);
@@ -60,12 +64,21 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   const [temperature, setTemperature] = useState<number>(0.7);
   const [topP, setTopP] = useState<number>(0.9);
   const [maxTokens, setMaxTokens] = useState<number>(64);
+  const [enableCoT, setEnableCoT] = useState<boolean>(false);
   const [activeTokenLive, setActiveTokenLive] = useState<string>('');
-  const [currentLatencyLiveMs, setCurrentLatencyLiveMs] = useState<number>(0.4);
+  const [currentLatencyLiveMs, setCurrentLatencyLiveMs] = useState<number>(0.38);
+
+  // Model Tier selection
+  const [selectedTier, setSelectedTier] = useState<ModelProfileTier>(() => {
+    if (hardwareLevel <= 2) return 'nano';
+    if (hardwareLevel <= 5) return 'core';
+    if (hardwareLevel <= 7) return 'powerhouse';
+    return 'beast';
+  });
 
   // Vector RAG memory state
   const [memories, setMemories] = useState<MemoryBankItem[]>(() => engine.getMemoryBank());
-  const [ragQuery, setRagQuery] = useState<string>('How does in-browser RAM neural execution ensure privacy?');
+  const [ragQuery, setRagQuery] = useState<string>('How does WebGPU accelerate in-browser neural computing?');
   const [ragResults, setRagResults] = useState<VectorSearchResult[]>([]);
   const [isSearchingRag, setIsSearchingRag] = useState<boolean>(false);
   const [newMemTitle, setNewMemTitle] = useState<string>('');
@@ -80,16 +93,36 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [trainingLossHistory, setTrainingLossHistory] = useState<TrainingLossRecord[]>([]);
 
-  // Abort controller ref
+  // WebGPU Benchmark state
+  const [benchSize, setBenchSize] = useState<number>(256);
+  const [isBenchmarking, setIsBenchmarking] = useState<boolean>(false);
+  const [benchResult, setBenchResult] = useState<WebGpuBenchmarkResult | null>(null);
+
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Probe WebGPU and update info
+  useEffect(() => {
+    webGpuEngine.init().then(info => {
+      setGpuInfo(info);
+      setRamStats(engine.getRamStats());
+    });
+  }, [webGpuEngine, engine]);
 
   // Periodic RAM refresh
   useEffect(() => {
     const timer = setInterval(() => {
       setRamStats(engine.getRamStats());
+      setGpuInfo(webGpuEngine.getDeviceInfo());
     }, 2000);
     return () => clearInterval(timer);
-  }, [engine]);
+  }, [engine, webGpuEngine]);
+
+  // Handle model tier switch
+  const handleSelectTier = (tier: ModelProfileTier) => {
+    setSelectedTier(tier);
+    engine.setModelTier(tier);
+    setRamStats(engine.getRamStats());
+  };
 
   // Handle live generation
   const handleGenerate = async () => {
@@ -109,6 +142,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         maxTokens,
         temperature,
         topP,
+        enableCoT,
         abortSignal: controller.signal,
         onToken: (tok, idx, latMs) => {
           accumulated += (accumulated ? ' ' : '') + tok;
@@ -135,11 +169,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     }
   };
 
-  // Handle Vector RAG search
-  const handleRagSearch = () => {
+  // Handle Vector RAG search with WebGPU acceleration
+  const handleRagSearch = async () => {
     if (!ragQuery.trim()) return;
     setIsSearchingRag(true);
-    const results = engine.searchMemoryBank(ragQuery, 4);
+    const results = await engine.searchMemoryBankAsync(ragQuery, 4);
     setRagResults(results);
     setIsSearchingRag(false);
   };
@@ -166,7 +200,6 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     setRamStats(engine.getRamStats());
   };
 
-  // Synthesize answer from Vector RAG match
   const handleRagSynthesize = (item: MemoryBankItem) => {
     setPrompt(`According to in-RAM memory "${item.title}": ${item.content}. Explain why this architecture is optimal.`);
     setActiveTab('generator');
@@ -191,6 +224,19 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     setRamStats(engine.getRamStats());
   };
 
+  // Run WebGPU Benchmark
+  const handleRunWebGpuBenchmark = async () => {
+    setIsBenchmarking(true);
+    try {
+      const res = await webGpuEngine.runBenchmark(benchSize);
+      setBenchResult(res);
+    } catch (err) {
+      console.warn('WebGPU Benchmark error:', err);
+    } finally {
+      setIsBenchmarking(false);
+    }
+  };
+
   // Toggle Quantization
   const handleToggleQuantization = (mode: 'FP32' | 'INT8') => {
     engine.setQuantization(mode);
@@ -211,7 +257,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
   return (
     <div className="space-y-6">
-      {/* Powerhouse Header & Live In-RAM Telemetry HUD */}
+      {/* Powerhouse Header & Live In-RAM + WebGPU Telemetry HUD */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-900 via-slate-900 to-violet-950 text-white shadow-xl border border-indigo-500/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -224,19 +270,27 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight text-white">In-RAM Mini AI Engine</h1>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    100% In-RAM • Zero Disk I/O
-                  </span>
+                  <h1 className="text-2xl font-black tracking-tight text-white">In-RAM Powerful Neural AI</h1>
+                  {gpuInfo.isAvailable ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-emerald-400 fill-current" />
+                      WebGPU Active
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/40 flex items-center gap-1">
+                      <Cpu className="w-3 h-3 text-violet-400" />
+                      CPU SIMD RAM
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-indigo-200/80">
-                  Sub-millisecond typed-array neural generation, live backprop training & in-RAM vector RAG
+                  {MODEL_TIER_CONFIGS[selectedTier].name} • {ramStats.numHeads}-Head Attention • TypedArrays &amp; WGSL Compute Shaders
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Real-Time Live In-RAM Telemetry Badges */}
+          {/* Real-Time Live Telemetry HUD */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-slate-400 mb-1">
@@ -246,7 +300,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               <div className="font-mono text-base font-black text-white">
                 {ramStats.totalAllocatedMb} <span className="text-xs font-normal text-indigo-300">MB</span>
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
+              <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                 {ramStats.parameterCount.toLocaleString()} params ({ramStats.quantization})
               </div>
             </div>
@@ -257,7 +311,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                 <span className="font-semibold">Inference Latency</span>
               </div>
               <div className="font-mono text-base font-black text-amber-300">
-                {currentLatencyLiveMs} <span className="text-xs font-normal text-amber-200">ms / token</span>
+                {currentLatencyLiveMs} <span className="text-xs font-normal text-amber-200">ms / tok</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
                 Sub-millisecond execution
@@ -273,20 +327,20 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                 {ramStats.tokensPerSecEstimate} <span className="text-xs font-normal text-rose-200">tok/s</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
-                In-browser JIT unrolled
+                {gpuInfo.isAvailable ? 'WebGPU WGSL Cores' : 'SIMD Unrolled CPU'}
               </div>
             </div>
 
             <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-slate-400 mb-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-semibold">Privacy Bound</span>
+                <span className="font-semibold">Hardware Bound</span>
               </div>
               <div className="font-mono text-base font-black text-emerald-300">
-                Level {hardwareLevel}
+                Lvl {hardwareLevel} • {currentTier.shortLabel}
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
-                {currentTier.shortLabel} target
+                Budget: {ramBudgetMb} MB
               </div>
             </div>
           </div>
@@ -322,6 +376,18 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
           </button>
 
           <button
+            onClick={() => setActiveTab('webgpu-bench')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'webgpu-bench'
+                ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
+                : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Gauge className="w-4 h-4 text-emerald-400" />
+            <span>WebGPU Hardware Lab</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('trainer')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'trainer'
@@ -347,6 +413,48 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       </div>
 
+      {/* Model Architecture Profile Switcher Bar */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
+            Active Neural Architecture in RAM
+          </span>
+          <div className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <span>{MODEL_TIER_CONFIGS[selectedTier].name}</span>
+            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono">
+              ({MODEL_TIER_CONFIGS[selectedTier].embedDim}-dim • {MODEL_TIER_CONFIGS[selectedTier].numHeads} Heads)
+            </span>
+          </div>
+        </div>
+
+        {/* Tier Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {(['nano', 'core', 'powerhouse', 'beast'] as ModelProfileTier[]).map((tierKey) => {
+            const t = MODEL_TIER_CONFIGS[tierKey];
+            const isSelected = selectedTier === tierKey;
+            return (
+              <button
+                key={tierKey}
+                onClick={() => handleSelectTier(tierKey)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all text-left ${
+                  isSelected
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="capitalize font-black">{tierKey}</span>
+                  <span className="text-[10px] font-mono text-slate-400">{t.ramEstMb}MB</span>
+                </div>
+                <div className="text-[10px] text-slate-500 font-normal truncate mt-0.5">
+                  {t.numHeads} Head{t.numHeads > 1 ? 's' : ''}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* TAB 1: NEURAL GENERATOR */}
       {activeTab === 'generator' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -356,6 +464,24 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-400">Inference Hyperparameters</span>
                 <Sliders className="w-4 h-4 text-slate-400" />
+              </div>
+
+              {/* Chain-of-Thought (CoT) Toggle */}
+              <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 block">
+                    Chain-of-Thought (CoT)
+                  </span>
+                  <span className="text-[10px] text-indigo-700/80 dark:text-indigo-400/80">
+                    Generates &lt;think&gt; reasoning steps
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableCoT}
+                  onChange={(e) => setEnableCoT(e.target.checked)}
+                  className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                />
               </div>
 
               {/* Temperature */}
@@ -504,7 +630,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   </>
                 ) : (
                   <div className="text-slate-500 italic py-10 text-center">
-                    Click "Execute In-RAM" above to run sub-millisecond typed-array token generation.
+                    Click "Execute In-RAM" above to run sub-millisecond multi-head token generation.
                   </div>
                 )}
               </div>
@@ -525,8 +651,8 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                     <span className="text-amber-400 font-bold">{telemetry.timePerTokenMs} ms</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">RAM Throughput</span>
-                    <span className="text-emerald-400 font-bold">{telemetry.tokensPerSecond} tok/sec</span>
+                    <span className="text-slate-500 block">Hardware Backend</span>
+                    <span className="text-emerald-400 font-bold truncate block">{telemetry.accelerator}</span>
                   </div>
                 </div>
               )}
@@ -538,12 +664,13 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
       {/* TAB 2: IN-RAM VECTOR MEMORY (RAG) */}
       {activeTab === 'vector-rag' && (
         <div className="space-y-6">
-          {/* Query Bar */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white">Semantic Cosine Vector Search</h3>
-                <p className="text-xs text-slate-500">Searches in-RAM Float32Array embedding space in &lt; 1 millisecond</p>
+                <p className="text-xs text-slate-500">
+                  Accelerated via {gpuInfo.isAvailable ? 'WebGPU WGSL Compute Shaders' : 'Float32Array SIMD Kernels'} in &lt; 1ms
+                </p>
               </div>
               <button
                 onClick={() => setShowAddMemModal(true)}
@@ -568,9 +695,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               </div>
               <button
                 onClick={handleRagSearch}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shrink-0 shadow-sm"
+                disabled={isSearchingRag}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition-colors shrink-0 shadow-sm flex items-center gap-2"
               >
-                Vector Search
+                <RefreshCw className={`w-3.5 h-3.5 ${isSearchingRag ? 'animate-spin' : ''}`} />
+                <span>Vector Search</span>
               </button>
             </div>
 
@@ -596,7 +725,9 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                         {res.item.content}
                       </p>
                       <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] text-slate-400 font-mono">Found in {res.timeMs}ms</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {res.accelerator} • {res.timeMs}ms
+                        </span>
                         <button
                           onClick={() => handleRagSynthesize(res.item)}
                           className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
@@ -617,7 +748,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white">In-RAM Resident Memory Items</h3>
-                <p className="text-xs text-slate-500">Each item is encoded as a 128-dimensional Float32Array vector in browser RAM</p>
+                <p className="text-xs text-slate-500">Each item is encoded as a Float32Array vector in browser RAM</p>
               </div>
               <span className="font-mono text-xs font-bold text-slate-400">{memories.length} items resident</span>
             </div>
@@ -647,7 +778,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                     {mem.content}
                   </p>
                   <div className="pt-2 flex items-center justify-between text-[10px] text-slate-400 font-mono border-t border-slate-200/60 dark:border-slate-700/60">
-                    <span>Float32Array[128]</span>
+                    <span>Float32Array[{mem.vector.length}]</span>
                     <span>{mem.timestamp}</span>
                   </div>
                 </div>
@@ -728,7 +859,127 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 3: IN-RAM FINE-TUNER */}
+      {/* TAB 3: WEBGPU HARDWARE LAB */}
+      {activeTab === 'webgpu-bench' && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Gauge className="w-5 h-5 text-emerald-500" />
+                  WebGPU Hardware Compute Lab &amp; Shader Profiler
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Benchmarks direct WebGPU Shading Language (WGSL) tensor operations on your physical graphics hardware.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+                  gpuInfo.isAvailable
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                    : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${gpuInfo.isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  {gpuInfo.isAvailable ? 'Hardware WebGPU Supported' : 'SIMD CPU Fallback Active'}
+                </span>
+              </div>
+            </div>
+
+            {/* GPU Device Properties Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Adapter / Device</span>
+                <span className="font-bold text-sm text-slate-900 dark:text-white block truncate" title={gpuInfo.adapterName}>
+                  {gpuInfo.adapterName}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">{gpuInfo.vendor}</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Architecture</span>
+                <span className="font-bold text-sm text-indigo-600 dark:text-indigo-400 block">
+                  {gpuInfo.architecture}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">{gpuInfo.deviceType}</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Max Storage Buffer</span>
+                <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 block">
+                  {gpuInfo.maxBufferSizeMb} MB VRAM
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">GPU Compute Heap</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Workgroup Size</span>
+                <span className="font-bold text-sm text-rose-600 dark:text-rose-400 block">
+                  {gpuInfo.maxComputeWorkgroupSize} Invocations
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">Parallel Shader Threads</span>
+              </div>
+            </div>
+
+            {/* Interactive Benchmark Runner */}
+            <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-bold text-sm text-white">WGSL Tensor Matrix Multiply Benchmark</h4>
+                  <p className="text-xs text-slate-400">
+                    Calculates 2 * N³ floating-point operations across GPU shader cores.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={benchSize}
+                    onChange={(e) => setBenchSize(parseInt(e.target.value))}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-white focus:outline-none"
+                  >
+                    <option value="128">128 x 128 Tensor</option>
+                    <option value="256">256 x 256 Tensor</option>
+                    <option value="512">512 x 512 Tensor</option>
+                  </select>
+
+                  <button
+                    onClick={handleRunWebGpuBenchmark}
+                    disabled={isBenchmarking}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <Zap className={`w-3.5 h-3.5 ${isBenchmarking ? 'animate-spin' : ''}`} />
+                    <span>{isBenchmarking ? 'Computing...' : 'Run Benchmark'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Benchmark Results Display */}
+              {benchResult && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-800 text-xs">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-[10px] text-slate-400 block">Execution Backend</span>
+                    <span className="font-bold text-emerald-400 truncate block mt-0.5">{benchResult.backend}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-[10px] text-slate-400 block">Dispatch Latency</span>
+                    <span className="font-bold text-amber-300 text-sm mt-0.5 block">{benchResult.timeMs} ms</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-[10px] text-slate-400 block">Throughput Rate</span>
+                    <span className="font-bold text-rose-300 text-sm mt-0.5 block">{benchResult.gflops} GFLOPS</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-[10px] text-slate-400 block">Benchmark Timestamp</span>
+                    <span className="font-bold text-slate-300 mt-0.5 block">{benchResult.timestamp}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: IN-RAM FINE-TUNER */}
       {activeTab === 'trainer' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
@@ -841,7 +1092,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 4: RAM MATRIX INSPECTOR */}
+      {/* TAB 5: RAM MATRIX INSPECTOR */}
       {activeTab === 'inspector' && (
         <div className="space-y-6">
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -889,7 +1140,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold">
                     <th className="pb-2">Buffer Name</th>
                     <th className="pb-2">TypedArray Representation</th>
-                    <th className="pb-2">Dimensions</th>
+                    <th className="pb-2">Dimensions &amp; Heads</th>
                     <th className="pb-2">Memory Footprint</th>
                   </tr>
                 </thead>
@@ -897,25 +1148,25 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   <tr>
                     <td className="py-2.5 font-bold text-slate-800 dark:text-slate-200">Weight Matrices (Dense + Attn)</td>
                     <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array / Int8Array</td>
-                    <td className="py-2.5 text-slate-500">[128x256, 256x128]</td>
+                    <td className="py-2.5 text-slate-500">{ramStats.numHeads} Heads • [{MODEL_TIER_CONFIGS[selectedTier].embedDim}x{MODEL_TIER_CONFIGS[selectedTier].hiddenDim}]</td>
                     <td className="py-2.5 font-bold text-slate-900 dark:text-white">{(ramStats.weightsBytes / 1024).toFixed(1)} KB</td>
                   </tr>
                   <tr>
                     <td className="py-2.5 font-bold text-slate-800 dark:text-slate-200">Token Embedding Table</td>
                     <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array</td>
-                    <td className="py-2.5 text-slate-500">[512 x 128]</td>
+                    <td className="py-2.5 text-slate-500">[512 x {MODEL_TIER_CONFIGS[selectedTier].embedDim}]</td>
                     <td className="py-2.5 font-bold text-slate-900 dark:text-white">{(ramStats.embeddingsBytes / 1024).toFixed(1)} KB</td>
                   </tr>
                   <tr>
                     <td className="py-2.5 font-bold text-slate-800 dark:text-slate-200">KV Attention Cache Buffer</td>
                     <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array</td>
-                    <td className="py-2.5 text-slate-500">[128 x 128]</td>
+                    <td className="py-2.5 text-slate-500">[128 x {MODEL_TIER_CONFIGS[selectedTier].embedDim}]</td>
                     <td className="py-2.5 font-bold text-slate-900 dark:text-white">{(ramStats.kvCacheBytes / 1024).toFixed(1)} KB</td>
                   </tr>
                   <tr>
                     <td className="py-2.5 font-bold text-slate-800 dark:text-slate-200">In-RAM Vector Memory Bank</td>
                     <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array[]</td>
-                    <td className="py-2.5 text-slate-500">[{memories.length} x 128]</td>
+                    <td className="py-2.5 text-slate-500">[{memories.length} x {MODEL_TIER_CONFIGS[selectedTier].embedDim}]</td>
                     <td className="py-2.5 font-bold text-slate-900 dark:text-white">{(ramStats.vectorBankBytes / 1024).toFixed(1)} KB</td>
                   </tr>
                   <tr>
@@ -943,7 +1194,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                 </span>
                 <p className="text-indigo-800/80 dark:text-indigo-300/80 leading-relaxed">
                   Your device has a safe RAM allocation budget cap of <strong>{ramBudgetMb} MB</strong>.
-                  With the in-RAM mini model occupying only <strong>{ramStats.totalAllocatedMb} MB</strong>, you have over{' '}
+                  With the in-RAM model occupying only <strong>{ramStats.totalAllocatedMb} MB</strong>, you have over{' '}
                   <strong>{Math.max(1, ramBudgetMb - Math.round(Number(ramStats.totalAllocatedMb)))} MB</strong> remaining for image upscaling,
                   multi-threaded neural OCR workers, and canvas graphics processing without paging to disk.
                 </p>

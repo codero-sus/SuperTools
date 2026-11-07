@@ -250,7 +250,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
           {
             id: `msg-${Date.now()}`,
             role: 'assistant',
-            content: `🧠 **In-RAM Neural Stream (${result.telemetry.timePerTokenMs}ms/token • ${result.telemetry.tokensPerSecond} tok/s in RAM):**\n\n${result.text}`,
+            content: `🧠 **In-RAM Neural Stream (${result.telemetry.accelerator} • ${result.telemetry.timePerTokenMs}ms/tok • ${result.telemetry.tokensPerSecond} tok/s):**\n\n${result.text}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             latencyMs: elapsed,
             tokensCount: result.telemetry.generatedTokens

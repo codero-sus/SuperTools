@@ -14,15 +14,17 @@ export interface AiTelemetry {
 export interface SystemAiCapabilities {
   hasWebAssembly: boolean;
   hasSimd: boolean;
+  hasWebGpu: boolean;
   hardwareThreads: number;
   deviceRamGb: number;
   speedRating: 'Ultra-Fast (Level 8-10)' | 'Fast (Level 4-7)' | 'Balanced (Level 1-3)';
 }
 
-// Check SIMD WebAssembly support
+// Check SIMD WebAssembly & WebGPU support
 export function detectSystemAiCapabilities(): SystemAiCapabilities {
   let hasWebAssembly = typeof WebAssembly !== 'undefined';
   let hasSimd = false;
+  let hasWebGpu = typeof navigator !== 'undefined' && Boolean((navigator as any).gpu);
 
   if (hasWebAssembly) {
     try {
@@ -48,6 +50,7 @@ export function detectSystemAiCapabilities(): SystemAiCapabilities {
   return {
     hasWebAssembly,
     hasSimd,
+    hasWebGpu,
     hardwareThreads,
     deviceRamGb,
     speedRating

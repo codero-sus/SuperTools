@@ -89,7 +89,9 @@ export const SUPERTOOLS_SETTINGS_KEYS = [
   'supertools_speech_lang',
   'supertools_chat_persona',
   'supertools_ram_quant',
-  'supertools_ram_preload'
+  'supertools_ram_preload',
+  'supertools_webgpu_mode',
+  'supertools_ram_model_tier'
 ] as const;
 
 /**

@@ -490,6 +490,30 @@
             </select>
             <span class="text-[10px] text-slate-500 block">Instant Cosine semantic memory bank</span>
           </div>
+
+          <!-- WebGPU Hardware Compute Acceleration -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">WebGPU Hardware Compute</span>
+            <select id="selWebGpuMode" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="auto" selected>Auto-Detect (WGSL GPU with SIMD Fallback)</option>
+              <option value="enabled">Force WebGPU WGSL Shaders</option>
+              <option value="disabled">CPU TypedArray Only (Power Saving)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Direct GPU hardware tensor execution</span>
+          </div>
+
+          <!-- In-RAM Model Architecture Tier -->
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-300 block">In-RAM Model Architecture</span>
+            <select id="selRamModelTier" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-bold focus:outline-none">
+              <option value="auto" selected>Hardware Auto-Match (Recommended)</option>
+              <option value="nano">Nano RAM (64-dim • 1 Head • 0.28MB)</option>
+              <option value="core">Core RAM (128-dim • 2 Heads • 1.85MB)</option>
+              <option value="powerhouse">Powerhouse RAM (256-dim • 4 Heads • 6.4MB)</option>
+              <option value="beast">Extreme Beast (512-dim • 8 Heads • 25.2MB)</option>
+            </select>
+            <span class="text-[10px] text-slate-500 block">Multi-head attention & RAM footprint</span>
+          </div>
         </div>
       </section>
 
@@ -727,6 +751,12 @@
       const ramPreload = localStorage.getItem('supertools_ram_preload');
       if (ramPreload) document.getElementById('selRamPreload').value = ramPreload;
 
+      const webGpuMode = localStorage.getItem('supertools_webgpu_mode');
+      if (webGpuMode) document.getElementById('selWebGpuMode').value = webGpuMode;
+
+      const ramModelTier = localStorage.getItem('supertools_ram_model_tier');
+      if (ramModelTier) document.getElementById('selRamModelTier').value = ramModelTier;
+
       // Cookie storage helpers
       function setCookie(name, value, days = 365) {
         const d = new Date();
@@ -808,6 +838,8 @@
         localStorage.setItem('supertools_chat_persona', document.getElementById('selChatPersona').value);
         localStorage.setItem('supertools_ram_quant', document.getElementById('selRamQuant').value);
         localStorage.setItem('supertools_ram_preload', document.getElementById('selRamPreload').value);
+        localStorage.setItem('supertools_webgpu_mode', document.getElementById('selWebGpuMode').value);
+        localStorage.setItem('supertools_ram_model_tier', document.getElementById('selRamModelTier').value);
 
         // Mirror to Cookies if enabled
         if (cookiesActive) {
@@ -835,6 +867,8 @@
           setCookie('supertools_chat_persona', document.getElementById('selChatPersona').value);
           setCookie('supertools_ram_quant', document.getElementById('selRamQuant').value);
           setCookie('supertools_ram_preload', document.getElementById('selRamPreload').value);
+          setCookie('supertools_webgpu_mode', document.getElementById('selWebGpuMode').value);
+          setCookie('supertools_ram_model_tier', document.getElementById('selRamModelTier').value);
         }
 
         const notification = document.createElement('div');

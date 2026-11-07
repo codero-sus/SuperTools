@@ -588,7 +588,7 @@ export const App: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Spotlight 1: In-RAM Mini AI */}
+                  {/* Spotlight 1: In-RAM Powerful Neural AI */}
                   <div
                     onClick={() => {
                       const t = TOOLS.find(x => x.id === 'in-ram-mini-ai');
@@ -601,14 +601,14 @@ export const App: React.FC = () => {
                         <Brain className="w-5 h-5" />
                       </div>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/40">
-                        In-RAM 0.4ms
+                        WebGPU + RAM
                       </span>
                     </div>
                     <h3 className="font-black text-sm text-white group-hover:text-violet-300 transition-colors">
-                      In-RAM Mini AI Engine
+                      In-RAM Powerful Neural AI
                     </h3>
                     <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                      TypedArray neural generation, live backprop fine-tuning & sub-millisecond vector RAG memory bank.
+                      Multi-head attention, WebGPU WGSL compute acceleration, live backprop fine-tuning &amp; sub-millisecond vector RAG.
                     </p>
                   </div>
 
