@@ -53,22 +53,47 @@ export const LLM_AVAILABLE_TOOLS: Record<string, LlmToolDefinition> = {
       { name: 'expression', type: 'string', description: 'Mathematical expression to calculate', required: true }
     ],
     handler: (args) => {
-      const expr = String(args.expression || '').trim();
+      let expr = String(args.expression || '').trim();
       if (!expr) return 'Error: Empty expression';
       try {
-        // Sanitize expression: allow only numbers, operators, parens, Math functions
-        const clean = expr.replace(/sqrt/g, 'Math.sqrt')
-                          .replace(/abs/g, 'Math.abs')
-                          .replace(/pi/gi, 'Math.PI')
-                          .replace(/pow/g, 'Math.pow')
-                          .replace(/sin/g, 'Math.sin')
-                          .replace(/cos/g, 'Math.cos')
-                          .replace(/log/g, 'Math.log')
-                          .replace(/[^0-9+\-*/().Math,sqrtabspowciseEL ]/g, '');
+        // Auto-balance parentheses if needed
+        let openP = (expr.match(/\(/g) || []).length;
+        let closeP = (expr.match(/\)/g) || []).length;
+        while (openP > closeP) {
+          expr += ')';
+          closeP++;
+        }
+        while (closeP > openP && expr.endsWith(')')) {
+          expr = expr.slice(0, -1);
+          closeP--;
+        }
+
+        // Sanitize and replace math functions and operators with Math equivalents
+        const clean = expr
+          .replace(/\^/g, '**')
+          .replace(/sqrt\s*\(/gi, 'Math.sqrt(')
+          .replace(/cbrt\s*\(/gi, 'Math.cbrt(')
+          .replace(/abs\s*\(/gi, 'Math.abs(')
+          .replace(/round\s*\(/gi, 'Math.round(')
+          .replace(/floor\s*\(/gi, 'Math.floor(')
+          .replace(/ceil\s*\(/gi, 'Math.ceil(')
+          .replace(/pow\s*\(/gi, 'Math.pow(')
+          .replace(/sin\s*\(/gi, 'Math.sin(')
+          .replace(/cos\s*\(/gi, 'Math.cos(')
+          .replace(/tan\s*\(/gi, 'Math.tan(')
+          .replace(/log\s*\(/gi, 'Math.log(')
+          .replace(/exp\s*\(/gi, 'Math.exp(')
+          .replace(/\bpi\b/gi, 'Math.PI')
+          .replace(/\be\b/gi, 'Math.E')
+          .replace(/[^0-9+\-*/().Math,PIEsqrtoabcielnpw%* ]/g, '');
+
         // Safe evaluation
         const fn = new Function(`return (${clean})`);
         const res = fn();
-        return typeof res === 'number' ? Number(res.toFixed(6)).toString() : String(res);
+        if (typeof res !== 'number' || isNaN(res)) {
+          return String(res);
+        }
+        return Number.isInteger(res) ? res.toString() : Number(res.toFixed(6)).toString();
       } catch (err: any) {
         return `Calculation Error: ${err?.message || 'Invalid syntax'}`;
       }
@@ -248,16 +273,43 @@ export function extractToolCalls(text: string): { tool: string; args: Record<str
 
 // Natural language heuristic trigger: detects when user question warrants a tool call
 export function detectHeuristicToolCall(prompt: string): { tool: string; args: Record<string, any> } | null {
-  const p = prompt.toLowerCase();
+  const p = prompt.toLowerCase().trim();
 
-  // Calculator trigger
-  const mathMatch = prompt.match(/(?:calculate|solve|what is|compute)\s+([0-9+\-*/().\s^%]+(?:\s*[\+\-\*\/]\s*[0-9]+)+)/i) ||
-                    prompt.match(/([0-9]+\s*[\+\-\*\/]\s*[0-9]+(?:\s*[\+\-\*\/]\s*[0-9]+)*)/);
-  if (mathMatch && mathMatch[1]) {
-    return { tool: 'calculator', args: { expression: mathMatch[1].trim() } };
+  // 1. Calculator trigger
+  const isCalcTrigger = /(?:calculate|solve|what is|compute|evaluate)\s+/i.test(prompt);
+  const hasMathExpr = /[0-9]+\s*[\+\-\*\/\^%]\s*[0-9]+|sqrt\s*\(|cbrt\s*\(|abs\s*\(|pow\s*\(/.test(prompt);
+
+  if (isCalcTrigger || hasMathExpr) {
+    let raw = prompt;
+    const triggerMatch = prompt.match(/(?:calculate|solve|what is|compute|evaluate)\s+(.+)/i);
+    if (triggerMatch && triggerMatch[1]) {
+      raw = triggerMatch[1];
+    }
+
+    // Strip trailing conversational or instruction phrases
+    raw = raw.replace(/\b(and\s+)?(explain|show|give|with|in)\b.*/i, '');
+    raw = raw.replace(/\b(step\s+by\s+step|in\s+detail|using\s+steps|please)\b.*/i, '');
+    raw = raw.replace(/[?!=]+$/, '');
+    raw = raw.trim();
+
+    // Verify it has numeric and operator or math function content
+    if (/[0-9]/.test(raw) && /[+\-*/^%().]|sqrt|abs|pow|cbrt|sin|cos|tan|log|pi/i.test(raw)) {
+      // Balance parentheses if trailing text cut one off
+      let openP = (raw.match(/\(/g) || []).length;
+      let closeP = (raw.match(/\)/g) || []).length;
+      while (openP > closeP) {
+        raw += ')';
+        closeP++;
+      }
+      while (closeP > openP && raw.endsWith(')')) {
+        raw = raw.slice(0, -1);
+        closeP--;
+      }
+      return { tool: 'calculator', args: { expression: raw } };
+    }
   }
 
-  // Unit converter trigger
+  // 2. Unit converter trigger
   const unitMatch = p.match(/convert\s+([0-9.]+)\s*(km|mi|miles|c|f|celsius|fahrenheit|kg|lb|pounds|mb|gb)\s+(?:to|in)\s+(km|mi|miles|c|f|celsius|fahrenheit|kg|lb|pounds|mb|gb)/i);
   if (unitMatch) {
     let from = unitMatch[2].replace('miles', 'mi').replace('celsius', 'c').replace('fahrenheit', 'f').replace('pounds', 'lb');
@@ -265,27 +317,27 @@ export function detectHeuristicToolCall(prompt: string): { tool: string; args: R
     return { tool: 'unit_converter', args: { value: parseFloat(unitMatch[1]), fromUnit: from, toUnit: to } };
   }
 
-  // Hash trigger
+  // 3. Hash trigger
   if (p.includes('sha256') || p.includes('sha-256') || (p.includes('hash') && (p.includes('of') || p.includes('for')))) {
     const textMatch = prompt.match(/(?:hash|sha256|sha-256)\s+(?:of|for)?\s*["']?([^"']+)["']?/i);
-    const toHash = textMatch ? textMatch[1].trim() : 'SuperTools';
+    const toHash = textMatch ? textMatch[1].replace(/[.?!]+$/, '').trim() : 'SuperTools';
     return { tool: 'crypto_hash', args: { text: toHash } };
   }
 
-  // Base64 trigger
+  // 4. Base64 trigger
   if (p.includes('base64')) {
     const isDecode = p.includes('decode');
     const textMatch = prompt.match(/base64\s+(?:encode|decode)?\s*["']?([^"']+)["']?/i);
-    const str = textMatch ? textMatch[1].trim() : 'SuperTools';
+    const str = textMatch ? textMatch[1].replace(/[.?!]+$/, '').trim() : 'SuperTools';
     return { tool: 'base64', args: { action: isDecode ? 'decode' : 'encode', text: str } };
   }
 
-  // Time / Date trigger
+  // 5. Time / Date trigger
   if (p.includes('current time') || p.includes('current date') || p.includes('what time is it') || p.includes('unix epoch')) {
     return { tool: 'timestamp', args: {} };
   }
 
-  // System specs trigger
+  // 6. System specs trigger
   if (p.includes('hardware specs') || p.includes('system ram') || p.includes('device memory') || p.includes('how much ram')) {
     return { tool: 'system_specs', args: {} };
   }
