@@ -13,6 +13,17 @@ export const TOOLS_DATA: ToolItem[] = [
     "badge": "In-RAM AI"
   },
   {
+    "id": "polyglot-maker",
+    "name": "PolyglotMaker · Multi-Format Bundle Studio",
+    "category": "Files & Documents",
+    "description": "Create and unpack dual-format PolyglotMaker container bundles (PNG + ZIP payloads) entirely in your browser. 100% client-side with zero backend or file uploads.",
+    "tags": ["polyglot", "polyglotmaker", "bundle", "zip", "png", "container", "steganography", "files", "payload", "extract", "unpack"],
+    "icon": "FileArchive",
+    "componentId": "polyglot-maker",
+    "featured": true,
+    "badge": "Pro"
+  },
+  {
     "id": "ai-chat-studio",
     "name": "AI Chat Studio & Neural Conversational Assistant",
     "category": "Text & Crypto Forge",

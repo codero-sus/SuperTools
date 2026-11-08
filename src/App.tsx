@@ -301,6 +301,37 @@ export const App: React.FC = () => {
     if (id === 'privacy-vault') return <PrivacyVault />;
     if (id === 'audio-studio') return <AudioStudio />;
 
+    if (id === 'polyglot-maker') {
+      return (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-bold text-white">PolyglotMaker Web Studio</span>
+              <span className="text-slate-400">• Running 100% Client-Side at /polyglot-maker/</span>
+            </div>
+            <a
+              href="/polyglot-maker/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
+            >
+              <span>Launch Fullscreen Studio</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+          <div className="w-full h-[760px] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-950">
+            <iframe
+              src="/polyglot-maker/"
+              title="PolyglotMaker Studio"
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-downloads allow-forms allow-popups"
+            />
+          </div>
+        </div>
+      );
+    }
+
     // Cheatsheets
     if (activeTool.category === 'Cheatsheets & Guides' || id.startsWith('cheatsheet-')) {
       const sheetSlug = id.replace('cheatsheet-', '');

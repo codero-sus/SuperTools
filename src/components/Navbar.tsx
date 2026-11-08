@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
             <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 hidden sm:block">
-              Privacy First • Zero Backend • Offline Ready
+              Privacy First • Zero Backend
             </p>
           </div>
         </div>

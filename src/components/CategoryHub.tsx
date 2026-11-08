@@ -61,7 +61,7 @@ export const CATEGORY_HUBS: CategoryCardData[] = [
       },
       {
         name: 'Universal Format Conversion',
-        toolIds: ['universal-file-converter', 'file-transformer']
+        toolIds: ['polyglot-maker', 'universal-file-converter', 'file-transformer']
       }
     ]
   },

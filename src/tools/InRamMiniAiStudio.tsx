@@ -3,29 +3,31 @@ import {
   Cpu, Zap, Brain, Activity, Database, Sparkles, Send, RefreshCw, 
   Download, Upload, Sliders, Check, Copy, ArrowRight, Play, Square,
   Layers, HardDrive, ShieldCheck, Terminal, BookOpen, Search, Plus, 
-  Trash2, AlertCircle, BarChart3, HelpCircle, Flame, Gauge, Laptop
+  Trash2, AlertCircle, BarChart3, HelpCircle, Flame, Gauge, Laptop,
+  Wrench, Calculator, Clock, Scale, Binary, Code2
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
 import { 
   getInRamNeuralEngine, InRamNeuralEngine, RamMemoryStats, 
   TrainingLossRecord, MemoryBankItem, VectorSearchResult, GenerationTelemetry,
-  ModelProfileTier, MODEL_TIER_CONFIGS
+  ModelProfileTier, MODEL_TIER_CONFIGS, QuantizationMode
 } from '../utils/inRamNeuralAi';
 import { getWebGpuAiEngine, WebGpuAiEngine, WebGpuBenchmarkResult, WebGpuDeviceInfo } from '../utils/webGpuAiEngine';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
+import { LLM_AVAILABLE_TOOLS, ToolCallExecution } from '../utils/llmToolRegistry';
 
 interface InRamMiniAiStudioProps {
   hardwareLevel?: number;
 }
 
-type StudioTab = 'generator' | 'vector-rag' | 'trainer' | 'webgpu-bench' | 'inspector';
+type StudioTab = 'generator' | 'tools-lab' | 'vector-rag' | 'trainer' | 'webgpu-bench' | 'inspector';
 
 const PROMPT_PRESETS = [
-  { label: '🧠 Neural Logic', text: 'Explain how multi-head attention computes parallel vector weights in browser RAM.' },
-  { label: '🚀 WebGPU vs SIMD', text: 'Compare WebGPU WGSL compute shaders with CPU WebAssembly SIMD for tensor multiplication.' },
-  { label: '💻 TypeScript Hook', text: 'Provide a resilient React hook using TypedArrays for client-side state caching.' },
-  { label: '🛡️ Zero-Trust Security', text: 'Explain the privacy advantage of 100% in-browser client-side execution over cloud APIs.' },
-  { label: '📊 Algorithm Profiling', text: 'How do Float32Array loop-unrolled dot products achieve sub-millisecond latency?' }
+  { label: '🛠️ Tool: Math Calculator', text: 'Calculate (145 * 28) + sqrt(144) / 4 and explain step by step.' },
+  { label: '🛠️ Tool: Unit Converter', text: 'Convert 120 km to miles and 75 fahrenheit to celsius.' },
+  { label: '🛠️ Tool: SHA-256 Hash', text: 'Generate SHA-256 hash for SuperTools Zero Backend Architecture.' },
+  { label: '🧠 Multi-Head Attention', text: 'Explain how multi-head attention computes parallel vector weights in browser RAM.' },
+  { label: '🚀 WebGPU vs SIMD', text: 'Compare WebGPU WGSL compute shaders with CPU WebAssembly SIMD for tensor multiplication.' }
 ];
 
 const TRAINING_PRESETS = [
@@ -42,6 +44,9 @@ const TRAINING_PRESETS = [
     text: 'WebGPU dispatches parallel compute workgroups across hundreds of physical GPU execution cores for massive matrix multiplications and high-dimensional vector embeddings.'
   }
 ];
+
+// Stepped tiers for the vertical slider (Level 1 to 5)
+const VERTICAL_SLIDER_TIERS: ModelProfileTier[] = ['micro', 'nano', 'core', 'gpt2-small', 'gpt2-medium'];
 
 export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLevel = 3 }) => {
   const currentTier = getTierByLevel(hardwareLevel);
@@ -65,15 +70,24 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   const [topP, setTopP] = useState<number>(0.9);
   const [maxTokens, setMaxTokens] = useState<number>(64);
   const [enableCoT, setEnableCoT] = useState<boolean>(false);
+  const [enableToolCalling, setEnableToolCalling] = useState<boolean>(true);
   const [activeTokenLive, setActiveTokenLive] = useState<string>('');
-  const [currentLatencyLiveMs, setCurrentLatencyLiveMs] = useState<number>(0.38);
+  const [currentLatencyLiveMs, setCurrentLatencyLiveMs] = useState<number>(0.35);
+  const [lastExecutedTools, setLastExecutedTools] = useState<ToolCallExecution[]>([]);
 
-  // Model Tier selection
+  // Vertical Slider Model Tier selection
   const [selectedTier, setSelectedTier] = useState<ModelProfileTier>(() => {
     if (hardwareLevel <= 2) return 'nano';
-    if (hardwareLevel <= 5) return 'core';
-    if (hardwareLevel <= 7) return 'powerhouse';
-    return 'beast';
+    if (hardwareLevel <= 4) return 'core';
+    if (hardwareLevel <= 7) return 'gpt2-small';
+    return 'gpt2-medium';
+  });
+
+  // Quantization mode (Q4_K vs Q6_K vs FP16 vs FP32)
+  const [quantMode, setQuantMode] = useState<QuantizationMode>(() => {
+    if (hardwareLevel <= 3) return 'Q4_K';
+    if (hardwareLevel <= 7) return 'Q6_K';
+    return 'FP16';
   });
 
   // Vector RAG memory state
@@ -117,11 +131,31 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     return () => clearInterval(timer);
   }, [engine, webGpuEngine]);
 
-  // Handle model tier switch
+  // Handle vertical slider tier change
   const handleSelectTier = (tier: ModelProfileTier) => {
     setSelectedTier(tier);
     engine.setModelTier(tier);
+    // Auto-align recommended quantization unless overridden
+    const recommended = MODEL_TIER_CONFIGS[tier].recommendedQuant;
+    setQuantMode(recommended);
+    engine.setQuantization(recommended);
     setRamStats(engine.getRamStats());
+  };
+
+  // Handle quantization change
+  const handleSelectQuantization = (q: QuantizationMode) => {
+    setQuantMode(q);
+    engine.setQuantization(q);
+    setRamStats(engine.getRamStats());
+  };
+
+  // Convert vertical slider index (0 to 4) to tier
+  const currentSliderIndex = VERTICAL_SLIDER_TIERS.indexOf(selectedTier);
+  const handleVerticalSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const idx = parseInt(e.target.value, 10);
+    if (idx >= 0 && idx < VERTICAL_SLIDER_TIERS.length) {
+      handleSelectTier(VERTICAL_SLIDER_TIERS[idx]);
+    }
   };
 
   // Handle live generation
@@ -132,6 +166,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     setGeneratedOutput('');
     setActiveTokenLive('');
     setTelemetry(null);
+    setLastExecutedTools([]);
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -143,16 +178,21 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         temperature,
         topP,
         enableCoT,
+        enableToolCalling,
         abortSignal: controller.signal,
         onToken: (tok, idx, latMs) => {
           accumulated += (accumulated ? ' ' : '') + tok;
           setGeneratedOutput(accumulated);
           setActiveTokenLive(tok);
           setCurrentLatencyLiveMs(Number(latMs.toFixed(2)));
+        },
+        onToolCall: (exec) => {
+          setLastExecutedTools(prev => [...prev, exec]);
         }
       });
 
       setTelemetry(result.telemetry);
+      setLastExecutedTools(result.telemetry.toolCallsExecuted || []);
       setRamStats(engine.getRamStats());
     } catch (err) {
       console.error('In-RAM inference error:', err);
@@ -178,7 +218,6 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     setIsSearchingRag(false);
   };
 
-  // Add custom memory to RAM bank
   const handleAddMemory = () => {
     if (!newMemTitle.trim() || !newMemContent.trim()) return;
     engine.addMemoryToBank({
@@ -237,12 +276,6 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     }
   };
 
-  // Toggle Quantization
-  const handleToggleQuantization = (mode: 'FP32' | 'INT8') => {
-    engine.setQuantization(mode);
-    setRamStats(engine.getRamStats());
-  };
-
   // Export weights snapshot
   const handleExportWeights = () => {
     const jsonStr = engine.exportWeightsSnapshot();
@@ -271,6 +304,9 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-black tracking-tight text-white">In-RAM Powerful Neural AI</h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                    {quantMode} Quantized
+                  </span>
                   {gpuInfo.isAvailable ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                       <Zap className="w-3 h-3 text-emerald-400 fill-current" />
@@ -284,7 +320,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   )}
                 </div>
                 <p className="text-sm text-indigo-200/80">
-                  {MODEL_TIER_CONFIGS[selectedTier].name} • {ramStats.numHeads}-Head Attention • TypedArrays &amp; WGSL Compute Shaders
+                  {MODEL_TIER_CONFIGS[selectedTier].name} • {ramStats.numHeads}-Head Attention • Tool Execution &amp; WGSL Compute Shaders
                 </p>
               </div>
             </div>
@@ -333,14 +369,14 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
             <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-semibold">Hardware Bound</span>
+                <Wrench className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-semibold">Tool Execution</span>
               </div>
               <div className="font-mono text-base font-black text-emerald-300">
-                Lvl {hardwareLevel} • {currentTier.shortLabel}
+                {enableToolCalling ? '6 Tools Ready' : 'Disabled'}
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
-                Budget: {ramBudgetMb} MB
+                Client-side function calls
               </div>
             </div>
           </div>
@@ -358,6 +394,21 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
           >
             <Sparkles className="w-4 h-4" />
             <span>Neural Generator</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tools-lab')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'tools-lab'
+                ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
+                : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Wrench className="w-4 h-4 text-emerald-400" />
+            <span>LLM Tools &amp; Actions</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-400/20 text-emerald-300 font-mono">
+              6
+            </span>
           </button>
 
           <button
@@ -413,167 +464,168 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       </div>
 
-      {/* Model Architecture Profile Switcher Bar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Active Neural Architecture in RAM
-          </span>
-          <div className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-            <span>{MODEL_TIER_CONFIGS[selectedTier].name}</span>
-            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono">
-              ({MODEL_TIER_CONFIGS[selectedTier].embedDim}-dim • {MODEL_TIER_CONFIGS[selectedTier].numHeads} Heads)
-            </span>
-          </div>
-        </div>
-
-        {/* Tier Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {(['nano', 'core', 'powerhouse', 'beast'] as ModelProfileTier[]).map((tierKey) => {
-            const t = MODEL_TIER_CONFIGS[tierKey];
-            const isSelected = selectedTier === tierKey;
-            return (
-              <button
-                key={tierKey}
-                onClick={() => handleSelectTier(tierKey)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all text-left ${
-                  isSelected
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 shadow-sm'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="capitalize font-black">{tierKey}</span>
-                  <span className="text-[10px] font-mono text-slate-400">{t.ramEstMb}MB</span>
-                </div>
-                <div className="text-[10px] text-slate-500 font-normal truncate mt-0.5">
-                  {t.numHeads} Head{t.numHeads > 1 ? 's' : ''}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* TAB 1: NEURAL GENERATOR */}
+      {/* TAB 1: NEURAL GENERATOR (Featuring Vertical Slider + Tool Calling) */}
       {activeTab === 'generator' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Controls & Presets (Left Column) */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* VERTICAL SLIDER CONTROLS (Left Column) */}
           <div className="lg:col-span-1 space-y-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Inference Hyperparameters</span>
-                <Sliders className="w-4 h-4 text-slate-400" />
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Model Capacity Slider</span>
+                <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">Vertical Track</span>
               </div>
 
-              {/* Chain-of-Thought (CoT) Toggle */}
-              <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 block">
-                    Chain-of-Thought (CoT)
-                  </span>
-                  <span className="text-[10px] text-indigo-700/80 dark:text-indigo-400/80">
-                    Generates &lt;think&gt; reasoning steps
-                  </span>
+              {/* Interactive Vertical Slider Component */}
+              <div className="flex gap-4 items-stretch py-2">
+                {/* Vertical Range Input */}
+                <div className="flex flex-col items-center justify-between relative py-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    step="1"
+                    value={currentSliderIndex}
+                    onChange={handleVerticalSliderChange}
+                    className="h-52 w-3 accent-indigo-600 cursor-pointer appearance-none bg-slate-200 dark:bg-slate-700 rounded-lg"
+                    style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+                    aria-label="Vertical Model Capacity Slider"
+                  />
+                  <span className="text-[9px] font-mono text-slate-400 font-bold mt-2">Scale</span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={enableCoT}
-                  onChange={(e) => setEnableCoT(e.target.checked)}
-                  className="w-4 h-4 accent-indigo-600 cursor-pointer"
-                />
-              </div>
 
-              {/* Temperature */}
-              <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  <span>Sampling Temperature</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{temperature.toFixed(2)}</span>
+                {/* Vertical Stepped Ticks & Level Cards */}
+                <div className="flex-1 flex flex-col justify-between space-y-2">
+                  {[4, 3, 2, 1, 0].map((idx) => {
+                    const tierKey = VERTICAL_SLIDER_TIERS[idx];
+                    const t = MODEL_TIER_CONFIGS[tierKey];
+                    const isSelected = selectedTier === tierKey;
+                    return (
+                      <div
+                        key={tierKey}
+                        onClick={() => handleSelectTier(tierKey)}
+                        className={`p-2 rounded-xl border text-left cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 shadow-sm ring-1 ring-indigo-500/50'
+                            : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[11px] font-black ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {t.shortLabel}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">{t.ramEstMb}MB</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 flex items-center justify-between mt-0.5">
+                          <span>{t.numHeads} Head{t.numHeads > 1 ? 's' : ''}</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{t.recommendedQuant}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1.5"
-                  step="0.05"
-                  value={temperature}
-                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Lower = deterministic precision; Higher = creative variance</p>
               </div>
 
-              {/* Top-P Nucleus */}
-              <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  <span>Top-P (Nucleus Sampling)</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{topP.toFixed(2)}</span>
+              {/* Quantization Mode Selector (Q4_K, Q6_K, FP16, FP32) */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Quantization Weight Mode</span>
+                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">{quantMode}</span>
                 </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1.0"
-                  step="0.05"
-                  value={topP}
-                  onChange={(e) => setTopP(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
-              </div>
-
-              {/* Max Tokens */}
-              <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  <span>Max Tokens in RAM</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{maxTokens}</span>
+                <div className="grid grid-cols-2 gap-1.5 text-xs font-bold">
+                  {(['Q4_K', 'Q6_K', 'FP16', 'FP32'] as QuantizationMode[]).map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleSelectQuantization(q)}
+                      className={`px-2 py-1.5 rounded-lg border transition-all text-center ${
+                        quantMode === q
+                          ? 'border-indigo-500 bg-indigo-600 text-white shadow-xs'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>{q}</span>
+                      <span className="block text-[9px] font-normal opacity-80">
+                        {q === 'Q4_K' ? '0.5B (Fast)' : q === 'Q6_K' ? '0.75B (Balanced)' : q === 'FP16' ? '2B (High)' : '4B (Max)'}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-                <input
-                  type="range"
-                  min="16"
-                  max="128"
-                  step="8"
-                  value={maxTokens}
-                  onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
               </div>
-            </div>
 
-            {/* Presets */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-400">Curated Prompts</span>
-              <div className="space-y-2">
-                {PROMPT_PRESETS.map((p, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPrompt(p.text)}
-                    className="w-full text-left p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-indigo-400 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 text-xs font-medium text-slate-700 dark:text-slate-300 transition-all flex items-center justify-between group"
-                  >
-                    <span>{p.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
+              {/* Tool Calling & CoT Toggles */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Enable Tool Calling
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Auto-invokes math &amp; conversions
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={enableToolCalling}
+                    onChange={(e) => setEnableToolCalling(e.target.checked)}
+                    className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Chain-of-Thought (CoT)
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Step-by-step &lt;think&gt; tokens
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={enableCoT}
+                    onChange={(e) => setEnableCoT(e.target.checked)}
+                    className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Prompt & Streaming Terminal (Right Column) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* MAIN PROMPT, TERMINAL & TOOL CALL TRACE (Right 3 Columns) */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Prompt Card */}
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Neural Input Prompt</span>
-                <span className="text-[11px] text-slate-400 font-mono">{prompt.length} chars</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Neural Prompt &amp; Tool Trigger</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-slate-400">{prompt.length} chars</span>
+                </div>
               </div>
+
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ask any logic, coding, architecture, or synthesis question..."
+                placeholder="Ask any question or request a calculation (e.g. 'Calculate 145 * 28 + sqrt(144)', 'Convert 120 km to miles')..."
                 rows={3}
                 className="w-full p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans resize-none"
               />
 
+              {/* Quick Presets Bar */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+                {PROMPT_PRESETS.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPrompt(p.text)}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300 shrink-0 transition-colors"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <Terminal className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Sub-millisecond inference in browser memory</span>
+                  <span>Sub-millisecond inference in browser RAM ({quantMode})</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -599,6 +651,35 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               </div>
             </div>
 
+            {/* Live Executed Tool Trace Callouts */}
+            {lastExecutedTools.length > 0 && (
+              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-emerald-400" />
+                    <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                      Client-Side Tool Call Executed
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400">Zero Server Latency</span>
+                </div>
+                {lastExecutedTools.map((t) => (
+                  <div key={t.id} className="p-2.5 rounded-xl bg-black/40 border border-emerald-500/20 space-y-1">
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="font-bold text-emerald-300">{t.displayName} ({t.toolName})</span>
+                      <span className="text-[10px] text-slate-400">{t.executionTimeMs} ms</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Arguments: <span className="text-white">{JSON.stringify(t.args)}</span>
+                    </div>
+                    <div className="text-xs text-emerald-300 font-bold pt-0.5">
+                      Result: <span className="text-white">{t.result}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Neural Generation Output Terminal */}
             <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 shadow-xl space-y-3 font-mono relative">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
@@ -609,6 +690,9 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                   </div>
                   <span className="text-xs font-bold text-slate-400 ml-2">In-RAM Tensor Stream</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-900/60 text-indigo-300">
+                    {MODEL_TIER_CONFIGS[selectedTier].shortLabel}
+                  </span>
                 </div>
 
                 {generatedOutput && (
@@ -630,7 +714,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   </>
                 ) : (
                   <div className="text-slate-500 italic py-10 text-center">
-                    Click "Execute In-RAM" above to run sub-millisecond multi-head token generation.
+                    Select a model capacity tier on the vertical slider and click "Execute In-RAM" above.
                   </div>
                 )}
               </div>
@@ -661,7 +745,63 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 2: IN-RAM VECTOR MEMORY (RAG) */}
+      {/* TAB 2: LLM TOOLS & ACTIONS LAB */}
+      {activeTab === 'tools-lab' && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-emerald-500" />
+                  Client-Side LLM Function Calling Tools
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  The in-RAM LLM can autonomously invoke these utilities with arguments and receive verified outputs.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                100% Client-Side • 0ms Latency
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.values(LLM_AVAILABLE_TOOLS).map((tool) => (
+                <div
+                  key={tool.name}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <Code2 className="w-4 h-4 text-indigo-500" />
+                      {tool.displayName}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                      {tool.name}()
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {tool.description}
+                  </p>
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 text-[10px] text-slate-500 flex items-center justify-between">
+                    <span>Params: {tool.parameters.map(p => p.name).join(', ') || 'None'}</span>
+                    <button
+                      onClick={() => {
+                        setPrompt(`Use tool ${tool.name} to demonstrate its capability.`);
+                        setActiveTab('generator');
+                      }}
+                      className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                    >
+                      Try Prompt &rarr;
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: IN-RAM VECTOR MEMORY (RAG) */}
       {activeTab === 'vector-rag' && (
         <div className="space-y-6">
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
@@ -831,9 +971,9 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                       className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="custom">Custom</option>
-                      <option value="code">Code & Syntax</option>
+                      <option value="code">Code &amp; Syntax</option>
                       <option value="architecture">System Architecture</option>
-                      <option value="science">Science & Logic</option>
+                      <option value="science">Science &amp; Logic</option>
                     </select>
                   </div>
                 </div>
@@ -859,7 +999,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 3: WEBGPU HARDWARE LAB */}
+      {/* TAB 4: WEBGPU HARDWARE LAB */}
       {activeTab === 'webgpu-bench' && (
         <div className="space-y-6">
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
@@ -979,7 +1119,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 4: IN-RAM FINE-TUNER */}
+      {/* TAB 5: IN-RAM FINE-TUNER */}
       {activeTab === 'trainer' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
@@ -1092,7 +1232,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
         </div>
       )}
 
-      {/* TAB 5: RAM MATRIX INSPECTOR */}
+      {/* TAB 6: RAM MATRIX INSPECTOR */}
       {activeTab === 'inspector' && (
         <div className="space-y-6">
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -1103,25 +1243,6 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex text-xs font-bold">
-                  <button
-                    onClick={() => handleToggleQuantization('FP32')}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      ramStats.quantization === 'FP32' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    FP32 (4-byte)
-                  </button>
-                  <button
-                    onClick={() => handleToggleQuantization('INT8')}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      ramStats.quantization === 'INT8' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    INT8 (1-byte, 4x compression)
-                  </button>
-                </div>
-
                 <button
                   onClick={handleExportWeights}
                   className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors shadow-2xs"
@@ -1147,7 +1268,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
                   <tr>
                     <td className="py-2.5 font-bold text-slate-800 dark:text-slate-200">Weight Matrices (Dense + Attn)</td>
-                    <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array / Int8Array</td>
+                    <td className="py-2.5 text-indigo-600 dark:text-indigo-400">Float32Array / Uint8Array</td>
                     <td className="py-2.5 text-slate-500">{ramStats.numHeads} Heads • [{MODEL_TIER_CONFIGS[selectedTier].embedDim}x{MODEL_TIER_CONFIGS[selectedTier].hiddenDim}]</td>
                     <td className="py-2.5 font-bold text-slate-900 dark:text-white">{(ramStats.weightsBytes / 1024).toFixed(1)} KB</td>
                   </tr>
@@ -1178,7 +1299,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   <tr className="bg-slate-50/80 dark:bg-slate-800/40">
                     <td className="py-3 font-black text-slate-900 dark:text-white">Total Active RAM Footprint</td>
                     <td className="py-3 text-emerald-600 dark:text-emerald-400 font-bold">Contiguous ArrayBuffers</td>
-                    <td className="py-3 text-slate-500">{ramStats.parameterCount.toLocaleString()} params</td>
+                    <td className="py-3 text-slate-500">{ramStats.parameterCount.toLocaleString()} params ({ramStats.quantization})</td>
                     <td className="py-3 font-black text-emerald-600 dark:text-emerald-400 text-sm">{ramStats.totalAllocatedMb} MB</td>
                   </tr>
                 </tbody>
