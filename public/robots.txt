@@ -1,4 +1,23 @@
+# Robots.txt for SuperTools (https://the-supertools.web.app)
+# All tools run 100% client-side with zero backend required.
+
 User-agent: *
 Allow: /
 
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Canonical Sitemaps
 Sitemap: https://the-supertools.web.app/sitemap.xml

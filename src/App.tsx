@@ -13,6 +13,7 @@ import { CategoryHub } from './components/CategoryHub';
 import { HardwareScalingModal } from './components/HardwareScalingModal';
 import { detectSystemHardware } from './utils/hardwareScaling';
 import { initSettingsPersistence, syncSettingsToCookies } from './utils/cookieStorage';
+import { updateDocumentSeo } from './utils/seoManager';
 
 // Core Powerhouse Tools
 import { AutoPhotoProcessor } from './tools/AutoPhotoProcessor';
@@ -244,6 +245,11 @@ export const App: React.FC = () => {
   const activeTool = useMemo(() => {
     return TOOLS.find(t => t.id === activeToolId);
   }, [activeToolId]);
+
+  // Dynamic SEO metadata, OpenGraph, Canonical & Schema.org JSON-LD Breadcrumbs
+  useEffect(() => {
+    updateDocumentSeo(activeTool || null, activeCategoryFilter || null);
+  }, [activeTool, activeCategoryFilter]);
 
   // Filtered tools when in category filter or search or favorites
   const filteredTools = useMemo(() => {

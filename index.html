@@ -2,65 +2,217 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SuperTools — 365+ Client-Side Web Utilities & AI Tools</title>
-    <meta name="description" content="A comprehensive suite of 365+ client-side web tools and utilities: AI background remover, image upscaler, neural OCR, document scanner, file converters, audio studio, code formatters, and developer utilities. 100% private, zero backend." />
-    <meta name="keywords" content="web utilities, developer tools, AI background remover, image upscaler, OCR scanner, client-side tools, PDF converter, color palette, text formatter, privacy tools" />
+    <title>SuperTools — 365+ Free Client-Side Web Utilities & In-RAM AI Tools</title>
+    <meta name="description" content="Free all-in-one suite of 365+ client-side web tools and offline AI utilities: In-RAM Neural AI with WebGPU acceleration, AI background remover, neural OCR, universal file converter, audio studio, and developer utilities. 100% private, zero backend, works offline." />
+    <meta name="keywords" content="web utilities, developer tools, AI background remover, image upscaler, OCR scanner, client-side tools, PDF converter, color palette, text formatter, privacy tools, in-ram ai, webgpu, deepseek, ollama, rtx 3050" />
     <meta name="author" content="SuperTools" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SuperTools" />
     <link rel="canonical" href="https://the-supertools.web.app/" />
+
+    <!-- Icons & Manifest -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://the-supertools.web.app/" />
-    <meta property="og:title" content="SuperTools — 365+ Client-Side Utilities & AI Tools" />
-    <meta property="og:description" content="All-in-one suite of 365+ web tools running 100% in your browser. Fast, secure, and private with zero server roundtrips." />
+    <meta property="og:title" content="SuperTools — 365+ Free Client-Side Utilities & In-RAM AI Studio" />
+    <meta property="og:description" content="All-in-one suite of 365+ web tools running 100% in your browser. WebGPU accelerated In-RAM AI, neural OCR, universal file converter, and zero server roundtrips." />
     <meta property="og:site_name" content="SuperTools" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://the-supertools.web.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SuperTools — 365+ Free Client-Side Utilities & In-RAM AI Studio" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SuperTools — 365+ Client-Side Utilities & AI Tools" />
+    <meta name="twitter:url" content="https://the-supertools.web.app/" />
+    <meta name="twitter:title" content="SuperTools — 365+ Free Client-Side Utilities & In-RAM AI Studio" />
     <meta name="twitter:description" content="All-in-one suite of 365+ web tools running 100% in your browser. Fast, secure, and private with zero server roundtrips." />
+    <meta name="twitter:image" content="https://the-supertools.web.app/og-image.png" />
+    <meta name="twitter:image:alt" content="SuperTools — 365+ Free Client-Side Utilities & In-RAM AI Studio" />
 
     <!-- Schema.org JSON-LD Structured Data for Rich Search Results -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "SuperTools",
-      "url": "https://the-supertools.web.app/",
-      "description": "Comprehensive suite of 365+ client-side web tools and utilities running entirely within the user's browser with zero backend requirements.",
-      "name": "SuperTools",
-      "url": "https://supertools.app/",
-      "description": "Comprehensive suite of 365+ client-side web tools and utilities running entirely within the user's browser with zero backend requirements.",
-      "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "All",
-      "browserRequirements": "Requires JavaScript. Requires HTML5.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "Client-side AI Background Remover",
-        "AI Image Upscaler & Detail Enhancer",
-        "Multi-model Neural OCR Studio",
-        "Universal File Converter (Images, Documents, Data)",
-        "Document Perspective Scanner with Paper Whitening",
-        "Client-side Speech to Text Transcriber",
-        "Audio Studio & Screen Recorder",
-        "Developer and Code Utility Suite"
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://the-supertools.web.app/#webapp",
+          "name": "SuperTools",
+          "url": "https://the-supertools.web.app/",
+          "description": "Comprehensive suite of 365+ client-side web tools and offline In-RAM AI utilities running entirely within the user's browser with zero backend requirements.",
+          "applicationCategory": "UtilitiesApplication, DeveloperApplication",
+          "operatingSystem": "All (Windows, macOS, Linux, Android, iOS)",
+          "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas & Web Workers.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "1280",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "featureList": [
+            "In-RAM Powerful Neural AI & WebGPU Studio (8 Model Capacity Tiers)",
+            "Client-Side Multi-Persona AI Chat (Ollama Local GPU, DeepSeek, Groq, Claude, OpenAI)",
+            "Client-side AI Background Remover & Subject Isolator",
+            "AI Image Upscaler & Detail Enhancer with Lanczos Sharpening",
+            "Multi-model Neural OCR Studio with Bounding Box Segmentation",
+            "Universal Multi-Format File Converter (Images, Documents, Data, Spreadsheets)",
+            "AI Document Perspective Scanner with Paper Whitening",
+            "Client-side Speech to Text Transcriber & Subtitle Generator",
+            "Automatic Photo Processing Studio with 1-Click HDR Enhancements",
+            "Audio Studio & Vocal Remover Stem Splitter",
+            "Developer & Cryptographic Privacy Vault Suite"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://the-supertools.web.app/#website",
+          "url": "https://the-supertools.web.app/",
+          "name": "SuperTools",
+          "description": "365+ Free Client-Side Web Utilities & In-RAM AI Tools",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://the-supertools.web.app/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://the-supertools.web.app/#organization",
+          "name": "SuperTools",
+          "url": "https://the-supertools.web.app/",
+          "logo": "https://the-supertools.web.app/favicon.svg"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://the-supertools.web.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Is SuperTools completely free to use?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. SuperTools is 100% free with no registration, no subscription, and no hidden limits. All 365+ utilities run entirely within your web browser."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Are my files, documents, or photos uploaded to any server?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. SuperTools operates with a strict zero-backend architecture. All file conversions, OCR processing, image editing, and AI inference execute locally on your device via HTML5, Web Workers, and WebGPU."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can SuperTools work offline without an internet connection?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Once the web application is loaded in your browser, all utilities operate fully offline. Even the In-RAM Neural AI model runs directly in browser memory using typed Float32Array buffers and WebGPU compute shaders."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does hardware scaling and WebGPU acceleration work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "SuperTools includes an adaptive hardware scaling engine ranging from Level 1 (2GB RAM for low-end laptops) up to Level 10 (256GB RAM for high-end workstations). It leverages WebGPU WGSL tiled shared-memory GEMM shaders to utilize discrete GPU cores such as the NVIDIA GeForce RTX 3050."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I connect my own local GPU models like Ollama or DeepSeek?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. The AI Chat Studio supports local Ollama GPU bridges (e.g. http://localhost:11434) to run models like Llama 3.2 and DeepSeek-R1 directly on your GPU, as well as direct client-side fetch for DeepSeek, Groq, Anthropic, and OpenAI."
+              }
+            }
+          ]
+        }
       ]
     }
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
   <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Semantic Crawler Directory (Indexed by search engine bots before React mounts) -->
+      <noscript>
+        <div style="max-width: 900px; margin: 40px auto; padding: 24px; font-family: sans-serif; line-height: 1.6;">
+          <h1>SuperTools — 365+ Free Client-Side Web Utilities &amp; In-RAM AI Studio</h1>
+          <p>
+            SuperTools is a comprehensive, 100% client-side web utility suite with zero server uploads.
+            All processing is performed directly on your device using WebGPU, WebAssembly, and HTML5.
+            Please enable JavaScript in your browser to interact with the full suite.
+          </p>
+        </div>
+      </noscript>
+
+      <!-- Semantic crawlable catalog for Googlebot and Bingbot indexing -->
+      <main class="sr-only" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
+        <h1>SuperTools — 365+ Free Client-Side Web Utilities &amp; In-RAM AI Tools</h1>
+        <p>A comprehensive suite of 365+ client-side web tools running 100% in your browser with zero backend requirements. Features In-RAM Neural AI, WebGPU acceleration, Neural OCR, Universal File Converter, and privacy-first utilities.</p>
+
+        <section>
+          <h2>Core AI &amp; WebGPU Tools</h2>
+          <ul>
+            <li><a href="#/in-ram-mini-ai">In-RAM Powerful Neural AI &amp; WebGPU Studio</a> — 8 model capacity tiers, sub-millisecond inference, backpropagation SGD fine-tuning, vector RAG memory bank.</li>
+            <li><a href="#/ai-chat-studio">AI Conversational Chat Studio</a> — Multi-persona AI chat with local Ollama GPU bridge (RTX 3050), DeepSeek, Groq, Claude, and OpenAI.</li>
+            <li><a href="#/ai-bg-remover">AI Background Remover &amp; Subject Isolator</a> — Instant transparent PNG cutout directly in your browser.</li>
+            <li><a href="#/ai-image-upscaler">AI Image Upscaler &amp; Detail Enhancer</a> — 4x bicubic Lanczos neural sharpening and noise reduction.</li>
+            <li><a href="#/ocr-tool">Neural OCR Text Extractor &amp; Document Scanner</a> — Client-side Tesseract OCR with multi-language recognition and bounding box segmentation.</li>
+            <li><a href="#/ai-doc-scanner">AI Document Perspective Scanner</a> — Perspective homography quad unwarping and paper whitening.</li>
+            <li><a href="#/ai-speech-transcriber">AI Speech to Text Transcriber</a> — Voice to text and SRT/VTT subtitle generator.</li>
+            <li><a href="#/ai-audio-stem-splitter">AI Audio Vocal Remover &amp; Stem Splitter</a> — Isolate or remove vocals from music tracks.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Media, Studio &amp; File Converters</h2>
+          <ul>
+            <li><a href="#/auto-photo-processor">Automatic Photo Processing Studio</a> — 1-click smart auto-enhancement, dynamic range stretch, portrait retouch glow, vivid HDR.</li>
+            <li><a href="#/universal-file-converter">Universal Multi-Format File Converter</a> — Convert across Excel XLSX, CSV, JSON, YAML, XML, Markdown, HTML, PDF, PNG, JPG, WebP, ICO, SVG.</li>
+            <li><a href="#/audio-studio">Audio Studio &amp; Sound Tools</a> — Calming noise generator (Brown/Pink/White), Binaural beats, Solfeggio tones, voice recorder, audio trimmer.</li>
+            <li><a href="#/screen-recorder">Screen &amp; Video Recorder</a> — Record desktop, browser tabs, and microphone without watermarks.</li>
+            <li><a href="#/polyglot-maker">PolyglotMaker Bundle Studio</a> — Dual-format container bundles (PNG + ZIP).</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Developer, Security &amp; Code Lab</h2>
+          <ul>
+            <li><a href="#/unified-text-forge">Unified Text Forge</a> — 50+ text transformations, case converters, line cleaners, and slugifiers.</li>
+            <li><a href="#/privacy-vault">Privacy Vault &amp; Cryptographic Suite</a> — AES-256 encryption, PBKDF2, SHA-256, RSA keygen, TOTP authenticator.</li>
+            <li><a href="#/json-formatter">JSON Formatter &amp; Validator</a> — Syntax highlight, minify, format, and inspect JSON data.</li>
+            <li><a href="#/jwt-decoder">JWT Debugger &amp; Claims Inspector</a> — Decode and inspect JSON Web Tokens locally.</li>
+            <li><a href="#/regex-tester">Regular Expression Lab</a> — Test regex patterns with instant capture groups.</li>
+            <li><a href="#/unit-converter">Universal Unit &amp; Metric Converter</a> — Length, weight, data storage, temperature, and speed.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

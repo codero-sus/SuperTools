@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="45%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="glowGrad1" x1="0" y1="0" x2="600" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="glowGrad2" x1="1200" y1="630" x2="700" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#059669" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#e0e7ff" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  <circle cx="250" cy="180" r="350" fill="url(#glowGrad1)" />
+  <circle cx="1000" cy="450" r="350" fill="url(#glowGrad2)" />
+
+  <!-- Grid Pattern Overlay -->
+  <g opacity="0.08" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105" />
+    <line x1="0" y1="210" x2="1200" y2="210" />
+    <line x1="0" y1="315" x2="1200" y2="315" />
+    <line x1="0" y1="420" x2="1200" y2="420" />
+    <line x1="0" y1="525" x2="1200" y2="525" />
+    <line x1="150" y1="0" x2="150" y2="630" />
+    <line x1="300" y1="0" x2="300" y2="630" />
+    <line x1="450" y1="0" x2="450" y2="630" />
+    <line x1="600" y1="0" x2="600" y2="630" />
+    <line x1="750" y1="0" x2="750" y2="630" />
+    <line x1="900" y1="0" x2="900" y2="630" />
+    <line x1="1050" y1="0" x2="1050" y2="630" />
+  </g>
+
+  <!-- Logo Mark -->
+  <g transform="translate(100, 90)">
+    <rect width="72" height="72" rx="20" fill="url(#accentGrad)" />
+    <path d="M36 14L41.2 28.8C41.8 30.6 43.2 32 45 32.6L59.8 37.8C60.4 38 60.4 38.8 59.8 39L45 44.2C43.2 44.8 41.8 46.2 41.2 48L36 62.8C35.8 63.4 35 63.4 34.8 62.8L29.6 48C29 46.2 27.6 44.8 25.8 44.2L11 39C10.4 38.8 10.4 38 11 37.8L25.8 32.6C27.6 32 29 30.6 29.6 28.8L34.8 14C35 13.4 35.8 13.4 36 14Z" fill="#ffffff" />
+    <text x="92" y="52" font-family="Inter, -apple-system, sans-serif" font-size="44" font-weight="900" fill="#ffffff" letter-spacing="-1">SuperTools</text>
+    <rect x="345" y="24" width="135" height="30" rx="15" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5" />
+    <text x="412" y="44" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#a5b4fc" text-anchor="middle">v2026 PRO</text>
+  </g>
+
+  <!-- Main Headline -->
+  <text x="100" y="240" font-family="Inter, -apple-system, sans-serif" font-size="54" font-weight="900" fill="url(#titleGrad)" letter-spacing="-1.5">
+    365+ Free Client-Side Web Utilities
+  </text>
+  <text x="100" y="305" font-family="Inter, -apple-system, sans-serif" font-size="46" font-weight="800" fill="#34d399" letter-spacing="-1">
+    &amp; In-RAM Neural AI Studio
+  </text>
+
+  <!-- Subtitle / Value Prop -->
+  <text x="100" y="365" font-family="Inter, -apple-system, sans-serif" font-size="22" font-weight="500" fill="#94a3b8" letter-spacing="-0.2">
+    100% In-Browser Execution • WebGPU Accelerated • Zero Server Roundtrips • Complete Privacy
+  </text>
+
+  <!-- Feature Pill Tags -->
+  <g transform="translate(100, 420)">
+    <!-- Pill 1 -->
+    <rect x="0" y="0" width="220" height="42" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+    <text x="110" y="26" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">⚡ In-RAM Neural AI (L1-L8)</text>
+
+    <!-- Pill 2 -->
+    <rect x="235" y="0" width="210" height="42" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+    <text x="340" y="26" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">🧠 24 Client Agent Tools</text>
+
+    <!-- Pill 3 -->
+    <rect x="460" y="0" width="220" height="42" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+    <text x="570" y="26" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">🖼️ Neural OCR &amp; Scanner</text>
+
+    <!-- Pill 4 -->
+    <rect x="695" y="0" width="210" height="42" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+    <text x="800" y="26" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">🔄 Universal File Converter</text>
+  </g>
+
+  <!-- Footer Meta -->
+  <g transform="translate(100, 530)">
+    <circle cx="10" cy="10" r="6" fill="#10b981" />
+    <text x="26" y="15" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#64748b">https://the-supertools.web.app</text>
+    
+    <text x="980" y="15" font-family="Inter, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#818cf8" text-anchor="end">Hardware Adaptive: 2GB &rarr; 256GB RAM</text>
+  </g>
+</svg>

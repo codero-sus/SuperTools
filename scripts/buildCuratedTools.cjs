@@ -2,6 +2,184 @@ const fs = require('fs');
 const path = require('path');
 
 const curatedTools = [
+  // 0. ADVANCED CLIENT-SIDE AI & WEBGPU STUDIO
+  {
+    id: 'in-ram-mini-ai',
+    name: 'In-RAM Powerful Neural AI & WebGPU Studio',
+    category: 'Code & Web Lab',
+    description: '100% in-browser multi-head Neural Network engine accelerated via WebGPU WGSL compute shaders and Float32Array buffers. 8 model capacity tiers (L1 Micro to L8 DeepSeek-R1 Distill), sub-millisecond inference, 24 client tools, backprop SGD fine-tuner, and vector RAG bank.',
+    tags: ['ai', 'mini ai', 'ram', 'in-ram', 'webgpu', 'wgsl', 'compute shader', 'neural network', 'llm', 'offline ai', 'vector', 'rag', 'embeddings', 'rtx 3050', 'deepseek', 'llama', 'gemm'],
+    icon: 'Brain',
+    componentId: 'in-ram-mini-ai',
+    featured: true,
+    badge: 'In-RAM AI'
+  },
+  {
+    id: 'ai-chat-studio',
+    name: 'AI Conversational Chat Studio (Offline & BYOK)',
+    category: 'Code & Web Lab',
+    description: 'Multi-persona conversational AI chat with direct client-side fetch: local Ollama GPU bridge (RTX 3050), DeepSeek, Groq (300+ tok/s), OpenAI, Anthropic Claude, and Google Gemini with streaming markdown telemetry.',
+    tags: ['ai chat', 'chatgpt', 'ollama', 'deepseek', 'groq', 'claude', 'gemini', 'llama', 'local ai', 'gpu bridge', 'rtx 3050', 'conversational ai', 'markdown'],
+    icon: 'Bot',
+    componentId: 'ai-chat-studio',
+    featured: true,
+    badge: 'In-RAM AI'
+  },
+  {
+    id: 'ai-bg-remover',
+    name: 'AI Background Remover & Subject Isolator',
+    category: 'Media & Studio',
+    description: 'Remove backgrounds from portraits, e-commerce products, animals, and graphics instantly in your browser with edge feathering and transparent PNG export.',
+    tags: ['background remover', 'remove bg', 'transparent png', 'ai cutout', 'isolate subject', 'portrait cutout', 'photo editing'],
+    icon: 'Scissors',
+    componentId: 'ai-bg-remover',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-image-upscaler',
+    name: 'AI Image Upscaler & Detail Enhancer',
+    category: 'Media & Studio',
+    description: 'Upscale low-resolution photos and illustrations up to 4x with bicubic Lanczos neural sharpening, edge recovery, and noise reduction directly in browser canvas.',
+    tags: ['upscaler', 'super resolution', 'ai upscale', 'enhance photo', 'sharpen image', '4x upscale', 'high resolution'],
+    icon: 'Sparkles',
+    componentId: 'ai-image-upscaler',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-doc-scanner',
+    name: 'AI Document Perspective Scanner & Paper Whitener',
+    category: 'Files & Documents',
+    description: 'Automatic quad corner detection, perspective homography unwarping, paper background whitening, and multi-page high-contrast PDF scanner.',
+    tags: ['document scanner', 'camscanner', 'pdf scanner', 'deskew', 'perspective crop', 'paper whitener', 'scan receipt'],
+    icon: 'Scan',
+    componentId: 'ai-doc-scanner',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-speech-transcriber',
+    name: 'AI Speech to Text Transcriber & Subtitle Generator',
+    category: 'Media & Studio',
+    description: 'Convert voice recordings, dictation, and audio files into accurate text, SRT, and VTT subtitle timestamps using client-side Web Speech recognition.',
+    tags: ['speech to text', 'transcriber', 'voice to text', 'audio transcription', 'subtitles', 'srt', 'vtt', 'dictation'],
+    icon: 'Mic',
+    componentId: 'ai-speech-transcriber',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-prompt-studio',
+    name: 'AI Prompt Engineering, Tokenizer & Safety Studio',
+    category: 'Code & Web Lab',
+    description: 'Interactive prompt optimizer, BPE token counter, system prompt architect, few-shot builder, and adversarial injection safety scanner.',
+    tags: ['prompt engineering', 'tokenizer', 'bpe token counter', 'jailbreak detector', 'prompt injection', 'system prompt', 'llm prompt'],
+    icon: 'Terminal',
+    componentId: 'ai-prompt-studio',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-neural-code-assistant',
+    name: 'AI Neural Code Assistant & Bug Hunter',
+    category: 'Code & Web Lab',
+    description: 'Multi-language AST complexity analyzer, bug detector, refactoring advisor, and regex/type generator running 100% locally in browser.',
+    tags: ['code assistant', 'bug hunter', 'cyclomatic complexity', 'refactor', 'ast analyzer', 'code review', 'developer ai'],
+    icon: 'Code2',
+    componentId: 'ai-neural-code-assistant',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-sentiment-tone-studio',
+    name: 'AI Sentiment, 8-Emotion Arc & Tone Studio',
+    category: 'Text & Crypto Forge',
+    description: 'Lexical emotional arc analyzer across 8 Plutchik sentiment dimensions (Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation).',
+    tags: ['sentiment analysis', 'tone analyzer', 'emotion detection', 'plutchik', 'copywriting tone', 'emotional arc', 'nlp'],
+    icon: 'Smile',
+    componentId: 'ai-sentiment-tone-studio',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-vision-object-detector',
+    name: 'AI Computer Vision & Smart Object / Face Detector',
+    category: 'Media & Studio',
+    description: 'Real-time client-side face bounding box locator, rule-of-thirds visual composition analyzer, edge contour detector, and color dominance profiler.',
+    tags: ['computer vision', 'object detector', 'face detection', 'rule of thirds', 'image segmentation', 'contour detection'],
+    icon: 'Eye',
+    componentId: 'ai-vision-object-detector',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-audio-stem-splitter',
+    name: 'AI Audio Vocal Remover & Stem Splitter Studio',
+    category: 'Media & Studio',
+    description: 'Isolate or remove vocals from music tracks using center-channel phase inversion, multiband dynamic filtering, and karaoke track creator.',
+    tags: ['vocal remover', 'stem splitter', 'karaoke', 'acapella', 'instrumental', 'audio filter', 'center channel cancellation'],
+    icon: 'Radio',
+    componentId: 'ai-audio-stem-splitter',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-text-summarizer',
+    name: 'AI Document & Text Summarizer',
+    category: 'Text & Crypto Forge',
+    description: 'Client-side extractive summarizer with TextRank sentence graph scoring, key takeaway bullet generator, and reading time reduction metrics.',
+    tags: ['summarizer', 'textrank', 'summarize document', 'executive summary', 'bullet points', 'article summarizer'],
+    icon: 'FileText',
+    componentId: 'ai-text-summarizer',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-smart-redactor',
+    name: 'AI Smart PII & Privacy Redactor',
+    category: 'Text & Crypto Forge',
+    description: 'Detect and redact Sensitive Personally Identifiable Information (Emails, Credit Cards, SSN, IP addresses, Phone numbers, API keys) before sharing.',
+    tags: ['pii redactor', 'privacy', 'sanitize', 'redact text', 'gdpr', 'hipaa', 'credit card redactor'],
+    icon: 'Shield',
+    componentId: 'ai-smart-redactor',
+    featured: true,
+    badge: 'Privacy'
+  },
+  {
+    id: 'ai-palette-extractor',
+    name: 'AI Color Palette & Mood Extractor',
+    category: 'Color & Palette',
+    description: 'Extract dominant color palettes, luminance harmonies, HEX/RGB/HSL codes, and WCAG contrast ratios from any uploaded image.',
+    tags: ['color palette', 'palette generator', 'extract colors', 'image colors', 'dominant colors', 'hex', 'wcag contrast'],
+    icon: 'Palette',
+    componentId: 'ai-palette-extractor',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'ai-image-colorizer',
+    name: 'AI Photo Colorizer & Monochrome Restorer',
+    category: 'Media & Studio',
+    description: 'Intelligent luminance remapping and vintage tone transfer to breathe color and warmth into vintage black & white family photographs.',
+    tags: ['colorizer', 'black and white to color', 'restore old photo', 'vintage photo', 'sepia', 'photo restoration'],
+    icon: 'Layers',
+    componentId: 'ai-image-colorizer',
+    featured: true,
+    badge: 'AI / Canvas'
+  },
+  {
+    id: 'polyglot-maker',
+    name: 'PolyglotMaker · Multi-Format Bundle Studio',
+    category: 'Files & Documents',
+    description: 'Create and unpack dual-format PolyglotMaker container bundles (PNG image + ZIP payload) entirely in your browser with zero backend.',
+    tags: ['polyglot', 'polyglotmaker', 'bundle', 'zip', 'png', 'container', 'steganography', 'files', 'payload'],
+    icon: 'Package',
+    componentId: 'polyglot-maker',
+    featured: true,
+    badge: 'New'
+  },
+
   // 1. PHOTO & MEDIA (AUTOMATIC PHOTO PROCESSING & STUDIO)
   {
     id: 'auto-photo-processor',
