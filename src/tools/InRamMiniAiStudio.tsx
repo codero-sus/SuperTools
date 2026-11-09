@@ -148,10 +148,48 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     return () => clearInterval(timer);
   }, [engine, webGpuEngine]);
 
-  // Handle vertical slider tier change
+  // On-demand Model Loading & Download States (eliminates lag and unnecessary downloads)
+  const [isModelLoaded, setIsModelLoaded] = useState<boolean>(() => engine.isLoaded());
+  const [isModelLoading, setIsModelLoading] = useState<boolean>(false);
+  const [modelLoadProgress, setModelLoadProgress] = useState<number>(0);
+  const [modelLoadStatus, setModelLoadStatus] = useState<string>('');
+
+  const handleDownloadAndLoadModel = async () => {
+    if (isModelLoading) return;
+    setIsModelLoading(true);
+    setModelLoadProgress(0);
+    setModelLoadStatus(`Initializing ${MODEL_TIER_CONFIGS[selectedTier].shortLabel}...`);
+
+    try {
+      await engine.loadModelAsync((pct, msg) => {
+        setModelLoadProgress(pct);
+        setModelLoadStatus(msg);
+      });
+      setIsModelLoaded(true);
+      setRamStats(engine.getRamStats());
+    } catch (err) {
+      console.error('Failed to load model weights:', err);
+      setModelLoadStatus('Error loading model weights. Please retry.');
+    } finally {
+      setIsModelLoading(false);
+    }
+  };
+
+  const handleUnloadModel = () => {
+    engine.unloadModel();
+    setIsModelLoaded(false);
+    setModelLoadProgress(0);
+    setModelLoadStatus('');
+    setRamStats(engine.getRamStats());
+  };
+
+  // Handle vertical slider tier change (Instantaneous, 0 lag)
   const handleSelectTier = (tier: ModelProfileTier) => {
     setSelectedTier(tier);
     engine.setModelTier(tier);
+    setIsModelLoaded(false);
+    setModelLoadProgress(0);
+    setModelLoadStatus('');
     // Auto-align recommended quantization unless overridden
     const recommended = MODEL_TIER_CONFIGS[tier].recommendedQuant;
     setQuantMode(recommended);
@@ -178,6 +216,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   // Handle live generation
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
+
+    // If model not loaded, load on demand first
+    if (!isModelLoaded) {
+      await handleDownloadAndLoadModel();
+    }
 
     setIsGenerating(true);
     setGeneratedOutput('');
@@ -609,6 +652,70 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
           {/* MAIN PROMPT, TERMINAL & TOOL CALL TRACE (Right 3 Columns) */}
           <div className="lg:col-span-3 space-y-4">
+            {/* Model Download & RAM Load Card with Live Progress Bar (Prevents Unnecessary Lag & Downloads) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-indigo-500/30 shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white">{MODEL_TIER_CONFIGS[selectedTier].name}</span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      isModelLoaded
+                        ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                        : 'bg-amber-950/80 text-amber-300 border-amber-800'
+                    }`}>
+                      {isModelLoaded ? '🟢 Active in RAM' : '⚪ Standby (0 MB Downloaded)'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    RAM Size: <span className="font-mono text-indigo-400 font-bold">{MODEL_TIER_CONFIGS[selectedTier].ramEstMb} MB</span> • Mode: <span className="font-mono text-emerald-400 font-bold">{quantMode}</span> • Heads: <span className="font-mono text-slate-300 font-bold">{MODEL_TIER_CONFIGS[selectedTier].numHeads}</span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isModelLoaded ? (
+                    <button
+                      onClick={handleDownloadAndLoadModel}
+                      disabled={isModelLoading}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{isModelLoading ? 'Downloading & Loading...' : `Download & Load (${MODEL_TIER_CONFIGS[selectedTier].ramEstMb} MB)`}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleUnloadModel}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 text-slate-300 font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Unload / Free RAM</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Bar when Loading */}
+              {isModelLoading && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-700">
+                    <div
+                      className="bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-500 h-full rounded-full transition-all duration-200"
+                      style={{ width: `${modelLoadProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono">
+                    <span className="text-indigo-400 font-bold animate-pulse">{modelLoadStatus}</span>
+                    <span className="text-emerald-400 font-bold">{modelLoadProgress}%</span>
+                  </div>
+                </div>
+              )}
+
+              {!isModelLoaded && !isModelLoading && (
+                <p className="text-[10px] text-slate-400 italic">
+                  💡 Weights are kept on standby so your browser doesn't download or allocate RAM unnecessarily. Click "Download & Load" when ready for sub-millisecond inference.
+                </p>
+              )}
+            </div>
+
             {/* Prompt Card */}
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="flex items-center justify-between">

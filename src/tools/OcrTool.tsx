@@ -132,6 +132,38 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
   const [activeTab, setActiveTab] = useState<'text' | 'parsed' | 'json'>('text');
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
+  // On-Demand Neural Model Pre-Download State (prevents unwanted 12MB background downloads)
+  const [isNeuralDownloaded, setIsNeuralDownloaded] = useState<boolean>(false);
+  const [isNeuralDownloading, setIsNeuralDownloading] = useState<boolean>(false);
+  const [downloadProgressPct, setDownloadProgressPct] = useState<number>(0);
+  const [downloadStatusText, setDownloadStatusText] = useState<string>('');
+
+  const handleDownloadOcrModel = async () => {
+    if (isNeuralDownloading) return;
+    setIsNeuralDownloading(true);
+    setDownloadProgressPct(10);
+    setDownloadStatusText(`Preparing ${selectedLanguage.toUpperCase()} LSTM Neural Engine (~12 MB)...`);
+
+    try {
+      await getWarmOcrWorker(
+        selectedLanguage,
+        currentTier.workerThreads,
+        (msg, pct) => {
+          setDownloadStatusText(msg);
+          setDownloadProgressPct(pct);
+        }
+      );
+      setIsNeuralDownloaded(true);
+      setDownloadProgressPct(100);
+      setDownloadStatusText(`✓ Neural Model (${selectedLanguage.toUpperCase()}) ready in browser memory!`);
+    } catch (err) {
+      console.warn('Failed to pre-download model:', err);
+      setDownloadStatusText('Download error. Falling back to Fast Zero-Download Canvas Engine.');
+    } finally {
+      setIsNeuralDownloading(false);
+    }
+  };
+
   // Parsed Specialized Entities
   const [parsedData, setParsedData] = useState<ParsedReceiptData | null>(null);
   const [mrzData, setMrzData] = useState<ParsedMrzData | null>(null);
@@ -1368,6 +1400,57 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Model Download & Optimization Banner (Prevents Unnecessary 12MB Downloads) */}
+            <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Neural OCR Model (~12 MB)
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    isNeuralDownloaded
+                      ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                  }`}>
+                    {isNeuralDownloaded ? '🟢 Downloaded' : '⚪ Not Downloaded'}
+                  </span>
+                </div>
+
+                {!isNeuralDownloaded && (
+                  <button
+                    onClick={handleDownloadOcrModel}
+                    disabled={isNeuralDownloading}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{isNeuralDownloading ? 'Downloading...' : 'Download Model (~12MB)'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Progress Bar when Downloading */}
+              {isNeuralDownloading && (
+                <div className="space-y-1 pt-1">
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-indigo-600 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${downloadProgressPct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                    <span className="truncate max-w-[220px]">{downloadStatusText}</span>
+                    <span>{downloadProgressPct}%</span>
+                  </div>
+                </div>
+              )}
+
+              {!isNeuralDownloaded && !isNeuralDownloading && (
+                <p className="text-[10px] text-slate-400">
+                  💡 Zero unnecessary downloads: Click "Download Model" to preload the 12MB LSTM engine, or execute directly with Fast Canvas mode.
+                </p>
+              )}
             </div>
 
             {/* Run OCR Button */}
