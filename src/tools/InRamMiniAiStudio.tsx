@@ -4,9 +4,10 @@ import {
   Download, Upload, Sliders, Check, Copy, ArrowRight, Play, Square,
   Layers, HardDrive, ShieldCheck, Terminal, BookOpen, Search, Plus, 
   Trash2, AlertCircle, BarChart3, HelpCircle, Flame, Gauge, Laptop,
-  Wrench, Calculator, Clock, Scale, Binary, Code2
+  Wrench, Calculator, Clock, Scale, Binary, Code2, Eye
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { 
   getInRamNeuralEngine, InRamNeuralEngine, RamMemoryStats, 
   TrainingLossRecord, MemoryBankItem, VectorSearchResult, GenerationTelemetry,
@@ -74,6 +75,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
   const [activeTokenLive, setActiveTokenLive] = useState<string>('');
   const [currentLatencyLiveMs, setCurrentLatencyLiveMs] = useState<number>(0.35);
   const [lastExecutedTools, setLastExecutedTools] = useState<ToolCallExecution[]>([]);
+  const [streamViewMode, setStreamViewMode] = useState<'formatted' | 'raw'>('formatted');
 
   // Vertical Slider Model Tier selection
   const [selectedTier, setSelectedTier] = useState<ModelProfileTier>(() => {
@@ -695,25 +697,41 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   </span>
                 </div>
 
-                {generatedOutput && (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setStreamViewMode(prev => prev === 'formatted' ? 'raw' : 'formatted')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 border transition-all ${
+                      streamViewMode === 'formatted'
+                        ? 'bg-indigo-900/40 text-indigo-300 border-indigo-700/50 hover:bg-indigo-900/60'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                    title={streamViewMode === 'formatted' ? 'Switch to Raw Monospace Stream' : 'Switch to Formatted Markdown View'}
+                  >
+                    {streamViewMode === 'formatted' ? <Eye className="w-3 h-3 text-indigo-400" /> : <Terminal className="w-3 h-3 text-slate-400" />}
+                    <span>{streamViewMode === 'formatted' ? 'Formatted' : 'Raw'}</span>
+                  </button>
+                  {generatedOutput && (
                     <QuickCopy text={generatedOutput} label="Copy Output" />
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Streaming Content */}
-              <div className="min-h-[160px] max-h-[340px] overflow-y-auto p-2 text-sm leading-relaxed whitespace-pre-wrap select-text">
+              <div className="min-h-[160px] max-h-[380px] overflow-y-auto p-3 text-sm leading-relaxed select-text">
                 {generatedOutput ? (
-                  <>
-                    <span className="text-indigo-300 font-bold">{'> '}</span>
-                    {generatedOutput}
-                    {isGenerating && (
-                      <span className="inline-block w-2 h-4 ml-1 bg-indigo-400 animate-pulse align-middle" />
-                    )}
-                  </>
+                  streamViewMode === 'formatted' ? (
+                    <MarkdownRenderer content={generatedOutput} isStreaming={isGenerating} />
+                  ) : (
+                    <div className="font-mono text-xs whitespace-pre-wrap text-slate-200">
+                      <span className="text-indigo-300 font-bold">{'> '}</span>
+                      {generatedOutput}
+                      {isGenerating && (
+                        <span className="inline-block w-2 h-4 ml-1 bg-indigo-400 animate-pulse align-middle" />
+                      )}
+                    </div>
+                  )
                 ) : (
-                  <div className="text-slate-500 italic py-10 text-center">
+                  <div className="text-slate-500 italic py-10 text-center font-mono text-xs">
                     Select a model capacity tier on the vertical slider and click "Execute In-RAM" above.
                   </div>
                 )}

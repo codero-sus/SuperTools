@@ -6,6 +6,7 @@ import {
   HelpCircle, StopCircle, ChevronDown, ChevronUp, ExternalLink
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
 import { getInRamNeuralEngine } from '../utils/inRamNeuralAi';
@@ -525,9 +526,13 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                     <span>{m.timestamp}</span>
                   </div>
 
-                  <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed selection:bg-indigo-400 selection:text-white">
-                    {m.content}
-                  </div>
+                  {isUser ? (
+                    <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed selection:bg-indigo-400 selection:text-white">
+                      {m.content}
+                    </div>
+                  ) : (
+                    <MarkdownRenderer content={m.content} />
+                  )}
 
                   {!isUser && (
                     <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
@@ -557,10 +562,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                   <RefreshCw className="w-2.5 h-2.5 animate-spin" />
                   <span>Streaming tokens...</span>
                 </div>
-                <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
-                  {streamingContent}
-                  <span className="inline-block w-1.5 h-3 ml-0.5 bg-indigo-400 animate-pulse" />
-                </div>
+                <MarkdownRenderer content={streamingContent} isStreaming={true} />
               </div>
             </div>
           )}
