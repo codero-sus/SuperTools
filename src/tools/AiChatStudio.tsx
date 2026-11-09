@@ -25,7 +25,7 @@ export interface ChatMessage {
 }
 
 type PersonaType = 'engineer' | 'executive' | 'copywriter' | 'scientist' | 'security' | 'coach';
-type ProviderType = 'local-engine' | 'in-ram-neural' | 'openai' | 'anthropic' | 'gemini' | 'ollama';
+type ProviderType = 'local-engine' | 'in-ram-neural' | 'ollama' | 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'gemini';
 
 const PERSONAS: Record<PersonaType, { name: string; title: string; icon: string; systemPrompt: string; color: string }> = {
   engineer: {
@@ -91,6 +91,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
   const [provider, setProvider] = useState<ProviderType>('local-engine');
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('supertools_chat_api_key') || '');
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434');
+  const [customModel, setCustomModel] = useState<string>('llama3.2');
 
   // Conversation history
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -178,23 +179,64 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
     const sw = new AiSpeedStopwatch();
     sw.start();
 
-    // Check if user has configured external API (BYOK)
-    if (provider !== 'local-engine' && apiKey.trim()) {
+    // 1. Ollama Local Discrete GPU Bridge (RTX 3050 / Local AI)
+    if (provider === 'ollama') {
       try {
-        // Direct Client-Side Fetch to Provider
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
+        const res = await fetch(`${ollamaEndpoint}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: customModel || 'llama3.2',
+            messages: [
+              { role: 'system', content: PERSONAS[persona].systemPrompt },
+              ...nextMessages.map(m => ({ role: m.role, content: m.content }))
+            ],
+            stream: false
+          }),
+          signal: controller.signal
+        });
+        const data = await res.json();
+        const responseText = data.message?.content || 'Error: No response received from local Ollama GPU engine.';
+
+        const elapsed = sw.total();
+        setLastLatencySec(sw.formatted());
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: responseText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            latencyMs: elapsed,
+            tokensCount: Math.round(responseText.length / 3.8)
+          }
+        ]);
+        setIsGenerating(false);
+        return;
+      } catch (err: any) {
+        console.warn('Ollama local GPU bridge failed, falling back to local engine:', err);
+      }
+    }
+
+    // 2. Direct Cloud API Fetch (BYOK: DeepSeek, Groq, OpenAI, Anthropic, Gemini)
+    if (['openai', 'deepseek', 'groq', 'anthropic', 'gemini'].includes(provider) && apiKey.trim()) {
+      try {
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
         let responseText = '';
-        if (provider === 'openai') {
-          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+
+        if (provider === 'deepseek') {
+          const res = await fetch('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey.trim()}`
             },
             body: JSON.stringify({
-              model: 'gpt-4o',
+              model: customModel || 'deepseek-chat',
               messages: [
                 { role: 'system', content: PERSONAS[persona].systemPrompt },
                 ...nextMessages.map(m => ({ role: m.role, content: m.content }))
@@ -204,10 +246,83 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
             signal: controller.signal
           });
           const data = await res.json();
-          responseText = data.choices?.[0]?.message?.content || 'Error: No response generated from OpenAI.';
+          responseText = data.choices?.[0]?.message?.content || 'Error: No response from DeepSeek API.';
+        } else if (provider === 'groq') {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model: customModel || 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: PERSONAS[persona].systemPrompt },
+                ...nextMessages.map(m => ({ role: m.role, content: m.content }))
+              ],
+              temperature: 0.7
+            }),
+            signal: controller.signal
+          });
+          const data = await res.json();
+          responseText = data.choices?.[0]?.message?.content || 'Error: No response from Groq LPU.';
+        } else if (provider === 'anthropic') {
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey.trim(),
+              'anthropic-version': '2023-06-01',
+              'dangerously-allow-browser': 'true'
+            },
+            body: JSON.stringify({
+              model: customModel || 'claude-3-5-sonnet-20241022',
+              max_tokens: 2048,
+              system: PERSONAS[persona].systemPrompt,
+              messages: nextMessages.map(m => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            }),
+            signal: controller.signal
+          });
+          const data = await res.json();
+          responseText = data.content?.[0]?.text || 'Error: No response from Anthropic Claude.';
+        } else if (provider === 'gemini') {
+          const modelName = customModel || 'gemini-2.0-flash';
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: nextMessages.map(m => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+              }))
+            }),
+            signal: controller.signal
+          });
+          const data = await res.json();
+          responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Error: No response from Google Gemini.';
         } else {
-          // Fallback to local engine
-          responseText = synthesizeLocalAiResponse(text, persona);
+          // OpenAI
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model: customModel || 'gpt-4o',
+              messages: [
+                { role: 'system', content: PERSONAS[persona].systemPrompt },
+                ...nextMessages.map(m => ({ role: m.role, content: m.content }))
+              ],
+              temperature: 0.7
+            }),
+            signal: controller.signal
+          });
+          const data = await res.json();
+          responseText = data.choices?.[0]?.message?.content || 'Error: No response from OpenAI.';
         }
 
         const elapsed = sw.total();
@@ -419,28 +534,64 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">Provider</label>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1">Neural Model Engine</label>
               <select
                 value={provider}
-                onChange={(e) => setProvider(e.target.value as ProviderType)}
+                onChange={(e) => {
+                  const p = e.target.value as ProviderType;
+                  setProvider(p);
+                  if (p === 'deepseek') setCustomModel('deepseek-chat');
+                  else if (p === 'groq') setCustomModel('llama-3.3-70b-versatile');
+                  else if (p === 'openai') setCustomModel('gpt-4o');
+                  else if (p === 'anthropic') setCustomModel('claude-3-5-sonnet-20241022');
+                  else if (p === 'gemini') setCustomModel('gemini-2.0-flash');
+                  else if (p === 'ollama') setCustomModel('llama3.2');
+                }}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold focus:outline-none"
               >
                 <option value="local-engine">⚡ Local Fast Hybrid Engine (1s-2s, Free & Offline)</option>
-                <option value="in-ram-neural">🧠 Pure In-RAM Mini Neural AI (0.4ms / tok, Float32Array in RAM)</option>
-                <option value="openai">OpenAI (Direct Client Fetch)</option>
-                <option value="anthropic">Anthropic Claude (Direct Client Fetch)</option>
-                <option value="ollama">Local Ollama (http://localhost:11434)</option>
+                <option value="in-ram-neural">🧠 Pure In-RAM Neural AI (WebGPU WGSL Cores, L1-L8 Tiers)</option>
+                <option value="ollama">🖥️ Local GPU Ollama / LM Studio (RTX 3050 8GB / localhost:11434)</option>
+                <option value="deepseek">🐋 DeepSeek-R1 / DeepSeek-V3 (Direct Browser BYOK)</option>
+                <option value="groq">⚡ Groq Lightning LPU (300+ tok/s • Llama-3.3-70B)</option>
+                <option value="openai">🟢 OpenAI (GPT-4o / GPT-4o-mini / o1)</option>
+                <option value="anthropic">🟣 Anthropic Claude (Claude 3.5 Sonnet / Haiku)</option>
+                <option value="gemini">🔷 Google Gemini (Gemini 2.0 Flash / 1.5 Pro)</option>
               </select>
             </div>
-            <div className="sm:col-span-2">
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">API Key (Stored only in your browser)</label>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1">Model Tag / Architecture</label>
               <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => handleSaveApiKey(e.target.value)}
-                placeholder="sk-proj-... (Leaves blank to use Built-In Local Engine)"
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                type="text"
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+                placeholder="e.g. llama3.2, deepseek-chat, gpt-4o..."
+                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
               />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                {provider === 'ollama' ? 'Local GPU Bridge URL' : 'API Key (Browser Memory Only)'}
+              </label>
+              {provider === 'ollama' ? (
+                <input
+                  type="text"
+                  value={ollamaEndpoint}
+                  onChange={(e) => setOllamaEndpoint(e.target.value)}
+                  placeholder="http://localhost:11434"
+                  className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                />
+              ) : (
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => handleSaveApiKey(e.target.value)}
+                  placeholder="sk-... (Leaves blank to use Local Engine)"
+                  className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                />
+              )}
             </div>
           </div>
         </div>

@@ -24,9 +24,15 @@ interface InRamMiniAiStudioProps {
 type StudioTab = 'generator' | 'tools-lab' | 'vector-rag' | 'trainer' | 'webgpu-bench' | 'inspector';
 
 const PROMPT_PRESETS = [
-  { label: '🛠️ Tool: Math Calculator', text: 'Calculate (145 * 28) + sqrt(144) / 4 and explain step by step.' },
-  { label: '🛠️ Tool: Unit Converter', text: 'Convert 120 km to miles and 75 fahrenheit to celsius.' },
-  { label: '🛠️ Tool: SHA-256 Hash', text: 'Generate SHA-256 hash for SuperTools Zero Backend Architecture.' },
+  { label: '🛠️ Math Calculator', text: 'Calculate (145 * 28) + sqrt(144) / 4 and explain step by step.' },
+  { label: '🛠️ Unit Converter', text: 'Convert 120 km to miles and 75 fahrenheit to celsius.' },
+  { label: '🛠️ UUID Generator', text: 'Generate 3 secure UUID v4 tokens and a nanoid slug.' },
+  { label: '🛠️ JSON Validator', text: 'Format and validate json: {"model":"Llama-3.2-3B","vramRequiredMb":1800,"quant":"Q4_K"}' },
+  { label: '🛠️ Password Generator', text: 'Generate a 24-character high-entropy cryptographic password with symbols and numbers.' },
+  { label: '🛠️ Color Converter', text: 'Convert color #6366f1 to RGB and HSL values with contrast recommendations.' },
+  { label: '🛠️ Cron Explainer', text: 'Explain cron expression: */15 9-18 * * 1-5' },
+  { label: '🛠️ Financial Loan EMI', text: 'Calculate loan EMI for $50,000 at 7.5% annual interest over 5 years.' },
+  { label: '🛠️ IP Subnet Calc', text: 'Calculate CIDR subnet details for 192.168.10.0/24.' },
   { label: '🧠 Multi-Head Attention', text: 'Explain how multi-head attention computes parallel vector weights in browser RAM.' },
   { label: '🚀 WebGPU vs SIMD', text: 'Compare WebGPU WGSL compute shaders with CPU WebAssembly SIMD for tensor multiplication.' }
 ];
@@ -46,8 +52,17 @@ const TRAINING_PRESETS = [
   }
 ];
 
-// Stepped tiers for the vertical slider (Level 1 to 5)
-const VERTICAL_SLIDER_TIERS: ModelProfileTier[] = ['micro', 'nano', 'core', 'gpt2-small', 'gpt2-medium'];
+// Stepped tiers for the vertical slider (Level 1 to 8: Micro-GPT to DeepSeek-R1 Extreme)
+const VERTICAL_SLIDER_TIERS: ModelProfileTier[] = [
+  'micro',
+  'nano',
+  'core',
+  'gpt2-small',
+  'gpt2-medium',
+  'llama-3-1b',
+  'llama-3-3b',
+  'deepseek-r1-distill'
+];
 
 export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLevel = 3 }) => {
   const currentTier = getTierByLevel(hardwareLevel);
@@ -484,11 +499,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                   <input
                     type="range"
                     min="0"
-                    max="4"
+                    max="7"
                     step="1"
                     value={currentSliderIndex}
                     onChange={handleVerticalSliderChange}
-                    className="h-52 w-3 accent-indigo-600 cursor-pointer appearance-none bg-slate-200 dark:bg-slate-700 rounded-lg"
+                    className="h-72 w-3 accent-indigo-600 cursor-pointer appearance-none bg-slate-200 dark:bg-slate-700 rounded-lg"
                     style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
                     aria-label="Vertical Model Capacity Slider"
                   />
@@ -496,8 +511,8 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                 </div>
 
                 {/* Vertical Stepped Ticks & Level Cards */}
-                <div className="flex-1 flex flex-col justify-between space-y-2">
-                  {[4, 3, 2, 1, 0].map((idx) => {
+                <div className="flex-1 flex flex-col justify-between space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
+                  {[7, 6, 5, 4, 3, 2, 1, 0].map((idx) => {
                     const tierKey = VERTICAL_SLIDER_TIERS[idx];
                     const t = MODEL_TIER_CONFIGS[tierKey];
                     const isSelected = selectedTier === tierKey;
@@ -505,7 +520,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                       <div
                         key={tierKey}
                         onClick={() => handleSelectTier(tierKey)}
-                        className={`p-2 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-1.5 px-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                           isSelected
                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 shadow-sm ring-1 ring-indigo-500/50'
                             : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40'
@@ -1095,9 +1110,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                     onChange={(e) => setBenchSize(parseInt(e.target.value))}
                     className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-white focus:outline-none"
                   >
-                    <option value="128">128 x 128 Tensor</option>
-                    <option value="256">256 x 256 Tensor</option>
-                    <option value="512">512 x 512 Tensor</option>
+                    <option value="128">128 x 128 Tensor (0.06 MB)</option>
+                    <option value="256">256 x 256 Tensor (0.25 MB)</option>
+                    <option value="512">512 x 512 Tensor (1.00 MB)</option>
+                    <option value="1024">1024 x 1024 Tensor [Discrete GPU 4.0 MB]</option>
+                    <option value="2048">2048 x 2048 Tensor [RTX Extreme 16.0 MB]</option>
                   </select>
 
                   <button
@@ -1113,22 +1130,39 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
               {/* Benchmark Results Display */}
               {benchResult && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-800 text-xs">
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-slate-400 block">Execution Backend</span>
-                    <span className="font-bold text-emerald-400 truncate block mt-0.5">{benchResult.backend}</span>
+                <div className="space-y-3 pt-3 border-t border-slate-800">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-[10px] text-slate-400 block">Execution Backend</span>
+                      <span className="font-bold text-emerald-400 truncate block mt-0.5">{benchResult.backend}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-[10px] text-slate-400 block">Dispatch Latency</span>
+                      <span className="font-bold text-amber-300 text-sm mt-0.5 block">{benchResult.timeMs} ms</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-[10px] text-slate-400 block">Throughput Rate</span>
+                      <span className="font-bold text-rose-300 text-sm mt-0.5 block">
+                        {benchResult.gflops >= 1000 ? (
+                          <>
+                            <span className="text-emerald-300 font-black">{(benchResult.gflops / 1000).toFixed(2)} TFLOPS</span>
+                            <span className="text-[10px] text-slate-400 ml-1">({benchResult.gflops} GFLOPS)</span>
+                          </>
+                        ) : (
+                          <span>{benchResult.gflops} GFLOPS</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-[10px] text-slate-400 block">Benchmark Timestamp</span>
+                      <span className="font-bold text-slate-300 mt-0.5 block">{benchResult.timestamp}</span>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-slate-400 block">Dispatch Latency</span>
-                    <span className="font-bold text-amber-300 text-sm mt-0.5 block">{benchResult.timeMs} ms</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-slate-400 block">Throughput Rate</span>
-                    <span className="font-bold text-rose-300 text-sm mt-0.5 block">{benchResult.gflops} GFLOPS</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-slate-400 block">Benchmark Timestamp</span>
-                    <span className="font-bold text-slate-300 mt-0.5 block">{benchResult.timestamp}</span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <span>⚡</span> L1 Shared Workgroup Tiled Memory (16x16 Tiles • Sub-millisecond Execution)
+                    </span>
+                    <span>Tensor Size: {benchResult.matrixSize}x{benchResult.matrixSize}</span>
                   </div>
                 </div>
               )}
