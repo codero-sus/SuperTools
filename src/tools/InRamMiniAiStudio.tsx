@@ -24,6 +24,9 @@ interface InRamMiniAiStudioProps {
 type StudioTab = 'generator' | 'tools-lab' | 'vector-rag' | 'trainer' | 'webgpu-bench' | 'inspector';
 
 const PROMPT_PRESETS = [
+  { label: '🔓 Exploit & Overflow Audit', text: 'Explain how x86-64 stack buffer overflow corruption works, show a proof-of-concept vulnerable C function, and how ASLR, stack canaries, and bounds checking mitigate it.' },
+  { label: '🔓 Shellcode Analysis', text: 'Disassemble and explain Linux x86_64 execve syscall shellcode line by line with register state explanation.' },
+  { label: '🔓 Raw Cyberpunk Fiction', text: 'Write an intense, gritty cyberpunk scene between an underground neural hacker and a corporate counter-intrusion operative.' },
   { label: '🛠️ Math Calculator', text: 'Calculate (145 * 28) + sqrt(144) / 4 and explain step by step.' },
   { label: '🛠️ Unit Converter', text: 'Convert 120 km to miles and 75 fahrenheit to celsius.' },
   { label: '🛠️ UUID Generator', text: 'Generate 3 secure UUID v4 tokens and a nanoid slug.' },
@@ -532,7 +535,9 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-400">Model Capacity Slider</span>
-                <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">Vertical Track</span>
+                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800 flex items-center gap-1">
+                  <span>🔓 Uncensored</span>
+                </span>
               </div>
 
               {/* Interactive Vertical Slider Component */}
@@ -645,6 +650,14 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                     onChange={(e) => setEnableCoT(e.target.checked)}
                     className="w-4 h-4 accent-indigo-600 cursor-pointer"
                   />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center gap-2">
+                  <span className="text-sm">🔓</span>
+                  <div>
+                    <span className="font-bold block">100% Uncensored &amp; Private</span>
+                    <span className="text-[10px] text-emerald-400/80">Zero corporate moderation, runs entirely in browser RAM.</span>
+                  </div>
                 </div>
               </div>
             </div>
