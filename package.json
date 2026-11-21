@@ -11,6 +11,7 @@
     "postinstall": "node scripts/setup-tesseract-assets.cjs"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.89",
     "@tesseract.js-data/deu": "^1.0.0",
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/fra": "^1.0.0",

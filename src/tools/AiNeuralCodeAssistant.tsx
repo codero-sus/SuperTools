@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Code2, Bug, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Copy, 
   Download, RefreshCw, Cpu, Gauge, Terminal, ShieldAlert, Zap, FileCode, 
-  Settings, Check, Eye, HelpCircle, Layers, Activity
+  Settings, Check, Eye, HelpCircle, Layers, Activity, Loader2, Play
 } from 'lucide-react';
 import { QuickCopy } from '../components/QuickCopy';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
+import { runLiveAiInference } from '../utils/liveAiInference';
 
 interface AiNeuralCodeAssistantProps {
   hardwareLevel?: number;
@@ -40,7 +42,10 @@ export const AiNeuralCodeAssistant: React.FC<AiNeuralCodeAssistantProps> = ({ ha
 }`
   );
 
-  const [latencySec, setLatencySec] = useState<string>('1.24s');
+  const [latencySec, setLatencySec] = useState<string>('0.85s');
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [outputCode, setOutputCode] = useState<string>('');
+  const [explanation, setExplanation] = useState<string>('');
 
   // 1-Click Code Presets
   const loadPreset = (type: 'leak' | 'redos' | 'sqli' | 'algo') => {
@@ -97,16 +102,11 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
     }
   };
 
-  // Ultra-Fast Neural Code Analysis Engine (<1.5s)
-  const analysis = useMemo(() => {
-    const sw = new AiSpeedStopwatch();
-    sw.start();
-
+  // Real Static AST / Pattern Analysis (Instant & Offline)
+  const staticAudit = useMemo(() => {
     const code = inputCode.trim();
     if (!code) {
       return {
-        outputCode: '',
-        explanation: 'Please provide source code to run analysis.',
         findings: [],
         bigO: 'O(1)',
         cyclomaticComplexity: 1,
@@ -118,13 +118,9 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
     const lines = code.split('\n');
     const findings: { type: 'critical' | 'warning' | 'info'; title: string; desc: string; line?: number }[] = [];
 
-    // 1. Static AST / Pattern scanning
     let nestedLoops = 0;
     let hasCatch = code.includes('catch') || code.includes('try');
     let hasAwait = code.includes('await');
-    let hasAny = code.includes(': any');
-    let hasEval = code.includes('eval(') || code.includes('innerHTML');
-    let hasPlusConcat = code.includes(" + '") || code.includes("' + ");
 
     lines.forEach((l, idx) => {
       if (l.includes('for (') || l.includes('for ') || l.includes('.forEach') || l.includes('while (')) {
@@ -174,51 +170,75 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
       });
     }
 
-    // 2. Synthesize AI Output based on Mode
-    let outputCode = '';
-    let explanation = '';
-    let bigO = nestedLoops >= 2 ? 'O(N²)' : nestedLoops === 1 ? 'O(N)' : 'O(1)';
-    let cyclomaticComplexity = Math.max(1, nestedLoops * 2 + (code.split('if (').length - 1) * 2 + 1);
-
-    if (mode === 'bug-hunter') {
-      outputCode = code
-        .replace(/let cache: any = \{\};/g, 'const cache = new Map<string, UserData>();')
-        .replace(/const response = await fetch\('\/api\/user\/' \+ userId\);/g, `const response = await fetch(\`/api/user/\${encodeURIComponent(userId)}\`);\n    if (!response.ok) throw new Error(\`HTTP \${response.status}: Failed to fetch user\`);`)
-        .replace(/for \(let i = 0; i < data\.orders\.length; i\+\+\) \{[\s\S]*?console\.log\("Found nested order match"\);\s*\}\s*\}\s*\}/g, `// O(N) Hash Set optimization replacing O(N^2) nested loop\n    const parentIds = new Set(data.orders.map((o: any) => o.parentId));\n    const matchingOrders = data.orders.filter((o: any) => parentIds.has(o.id));`);
-
-      if (!outputCode.includes('try {')) {
-        outputCode = `try {\n  ${outputCode.split('\n').join('\n  ')}\n} catch (err) {\n  console.error("fetchUserData failure:", err);\n  throw err;\n}`;
-      }
-
-      explanation = `Detected ${findings.length} critical issues. Sanitized request concatenation with encodeURIComponent(), replaced O(N²) quadratic comparison with O(N) Set lookup, and wrapped async calls in strict error boundary.`;
-    } else if (mode === 'clean-refactor') {
-      outputCode = `/**\n * Modernized, type-safe implementation with early exits and functional immutability.\n */\nexport const fetchUserData = async (userId: string): Promise<UserData> => {\n  const res = await fetch(\`/api/user/\${encodeURIComponent(userId)}\`);\n  if (!res.ok) throw new Error(\`Failed to fetch user \${userId}\`);\n\n  const data: UserData = await res.json();\n  const parentIdSet = new Set(data.orders.map(o => o.parentId));\n  const matchedOrders = data.orders.filter(o => parentIdSet.has(o.id));\n\n  return {\n    ...data,\n    matchedOrders\n  };\n};`;
-      explanation = `Refactored into clean modular functional paradigm with explicit return types, strict sanitization, and eliminated memory-leaking global object cache.`;
-    } else if (mode === 'complexity-profiler') {
-      outputCode = `// Algorithmic Profile Report:\n// Time Complexity:  ${bigO} (Estimated)\n// Space Complexity: ${nestedLoops > 0 ? 'O(N)' : 'O(1)'}\n// Cyclomatic Score: ${cyclomaticComplexity} (Max recommended: 10)\n\n${code}`;
-      explanation = `Estimated Time Complexity is ${bigO}. Space Complexity is ${nestedLoops > 0 ? 'O(N)' : 'O(1)'}. Code has a cyclomatic score of ${cyclomaticComplexity}.`;
-    } else if (mode === 'docstring-annotator') {
-      outputCode = `/**\n * Asynchronously retrieves user profile and orders for the specified user.\n *\n * @param userId - Unique alphanumeric identifier of the target user.\n * @returns Promise resolving to the validated user profile data.\n * @throws Error when the network request fails or returns non-200 status.\n *\n * @example\n * const user = await fetchUserData("usr_99812");\n * console.log(user.name);\n */\n${code}`;
-      explanation = `Added industry-standard TSDoc documentation with parameter annotations, return types, error throws, and concrete usage examples.`;
-    } else {
-      // Explainer
-      outputCode = code;
-      explanation = `1. Function initiates an asynchronous operation to retrieve user records by ID.\n2. Constructs API endpoint and parses response payload as JSON.\n3. Iterates over order records searching for parent/child hierarchies.\n4. Returns the accumulated data structure.`;
-    }
-
+    const bigO = nestedLoops >= 2 ? 'O(N²)' : nestedLoops === 1 ? 'O(N)' : 'O(1)';
+    const cyclomaticComplexity = Math.max(1, nestedLoops * 2 + (code.split('if (').length - 1) * 2 + 1);
     const qualityScore = Math.max(30, 100 - findings.length * 18);
     const securityRating = findings.some(f => f.type === 'critical') ? 'Action Required' : findings.length > 0 ? 'Medium' : 'Clean & Verified';
 
     return {
-      outputCode,
-      explanation,
       findings,
       bigO,
       cyclomaticComplexity,
       qualityScore,
       securityRating
     };
-  }, [inputCode, mode, language]);
+  }, [inputCode]);
+
+  // Execute Genuine Neural AI Inference (Zero Heuristics)
+  const handleRunNeuralAnalysis = async () => {
+    if (!inputCode.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    const sw = new AiSpeedStopwatch();
+    sw.start();
+
+    const modeInstructions: Record<CodeMode, string> = {
+      'bug-hunter': 'Identify all bugs, memory leaks, security vulnerabilities, and runtime exceptions. Provide a fully hardened, fixed, production-ready implementation followed by an itemized list of bugs fixed and security mitigations applied.',
+      'clean-refactor': 'Refactor this code into clean, highly readable, idiomatic code adhering to SOLID principles, immutability, and performance best practices.',
+      'complexity-profiler': 'Analyze the Time Complexity and Space Complexity (Big-O). Optimize the algorithm to the lowest feasible complexity class, providing the improved code and a step-by-step Big-O proof.',
+      'docstring-annotator': 'Annotate this code with comprehensive, industry-standard documentation (TSDoc/JSDoc/Docstring) detailing parameters, return values, exceptions thrown, and realistic usage examples.',
+      'code-explainer': 'Provide a comprehensive plain-English architectural breakdown of this code, explaining data flow, design patterns, and edge cases.'
+    };
+
+    const sysPrompt = `You are an elite Principal Staff Software Engineer and Senior Application Security Architect.
+Language: ${language}
+Task: ${modeInstructions[mode]}
+
+Format requirements:
+1. First, provide the complete, improved, ready-to-run code in a single markdown \`\`\`${language} code block.
+2. After the code block, provide your concise technical explanation, complexity impact, and architectural takeaways.
+Do not use generic canned responses. Genuinely audit the user's provided code.`;
+
+    try {
+      const response = await runLiveAiInference({
+        prompt: inputCode,
+        systemPrompt: sysPrompt,
+        model: 'deepseek-r1'
+      });
+
+      const codeMatch = response.match(/```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)```/);
+      if (codeMatch && codeMatch[1]) {
+        setOutputCode(codeMatch[1].trim());
+        const remainingText = response.replace(codeMatch[0], '').trim();
+        setExplanation(remainingText || 'Neural analysis complete. Review verified code above.');
+      } else {
+        setOutputCode(response);
+        setExplanation('Full neural output rendered above.');
+      }
+      setLatencySec(sw.formatted());
+    } catch (err: any) {
+      console.warn('Neural analysis error:', err);
+      setOutputCode(`// Neural Engine Notice: Could not connect to live neural endpoint (${err?.message || 'network timeout'}).\n// Static AST Analysis detected ${staticAudit.findings.length} findings below.\n\n${inputCode}`);
+      setExplanation(`⚠️ Live inference notice: Ensure you have an internet connection or a local GPU backend running. Static diagnostics are detailed in the audit panel.`);
+      setLatencySec(sw.formatted());
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Initial run on preset or mode change
+  useEffect(() => {
+    handleRunNeuralAnalysis();
+  }, [mode, language]);
 
   return (
     <div className="space-y-6">
@@ -233,11 +253,11 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
               AI Neural Code Assistant & Bug Hunter
             </h2>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
-              <Zap className="w-2.5 h-2.5" /> 1s-7s Ultra-Fast AI
+              <Zap className="w-2.5 h-2.5" /> Real Neural Inference
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Detect memory leaks, injection vectors, and ReDoS vulnerabilities, profile Big-O complexity, and generate clean JSDoc refactorings.
+            Detect memory leaks, injection vectors, and ReDoS vulnerabilities, profile Big-O complexity, and generate clean JSDoc refactorings using real neural models.
           </p>
         </div>
 
@@ -267,7 +287,7 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
             <span className="text-[11px] font-mono text-cyan-400">RAM Ceiling: {ramBudget} MB</span>
           </div>
           <p className="text-xs text-slate-400">
-            AST pattern parsing and cyclomatic graph evaluations execute in under 1.5 seconds locally with zero external network overhead.
+            Combines real neural transformer code reasoning with sub-millisecond client-side AST syntax and security analyzers.
           </p>
         </div>
       )}
@@ -302,7 +322,7 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
       </div>
 
       {/* AI Modes & Language Selectors */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
           <label className="font-bold text-slate-300 block">AI Neural Assistant Mode</label>
           <select
@@ -337,14 +357,34 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-mono text-slate-400 block uppercase">Quality Score</span>
-            <span className={`text-base font-black font-mono ${analysis.qualityScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {analysis.qualityScore}/100
+            <span className={`text-base font-black font-mono ${staticAudit.qualityScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {staticAudit.qualityScore}/100
             </span>
           </div>
           <div className="text-right">
             <span className="text-[10px] font-mono text-slate-400 block uppercase">Big-O Time</span>
-            <span className="text-base font-black font-mono text-cyan-400">{analysis.bigO}</span>
+            <span className="text-base font-black font-mono text-cyan-400">{staticAudit.bigO}</span>
           </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
+          <button
+            onClick={handleRunNeuralAnalysis}
+            disabled={isAnalyzing}
+            className="w-full h-full py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/20 transition-all disabled:opacity-50"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Neural Reasoning...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Run Neural Analysis</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -375,29 +415,30 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
               <Sparkles className="w-3.5 h-3.5" /> AI Verified Solution / Output
             </label>
             <div className="flex items-center gap-2">
-              <QuickCopy text={analysis.outputCode} label="Copy Code" />
+              <QuickCopy text={outputCode} label="Copy Code" />
             </div>
           </div>
           <textarea
             readOnly
-            value={analysis.outputCode}
+            value={outputCode}
             rows={14}
+            placeholder={isAnalyzing ? 'Neural network is analyzing and refactoring code...' : 'Click "Run Neural Analysis" above.'}
             className="w-full p-4 rounded-2xl bg-slate-950 border border-cyan-900/40 text-cyan-200/90 font-mono text-xs focus:outline-none transition-all resize-none select-all"
           />
         </div>
       </div>
 
       {/* AI Findings & Security Audit Breakdown */}
-      {analysis.findings.length > 0 && (
+      {staticAudit.findings.length > 0 && (
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-amber-400" />
             <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">
-              Diagnostic Audit ({analysis.findings.length} findings)
+              Static Diagnostic Audit ({staticAudit.findings.length} items)
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {analysis.findings.map((f, i) => (
+            {staticAudit.findings.map((f, i) => (
               <div
                 key={i}
                 className={`p-3 rounded-xl border ${
@@ -418,13 +459,17 @@ def find_overlapping_transactions(tx_list_a, tx_list_b):
       )}
 
       {/* AI Summary Rationale */}
-      <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3 text-xs text-slate-300">
-        <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold text-slate-200 block">AI Engine Summary</span>
-          <p className="text-slate-400 mt-0.5">{analysis.explanation}</p>
+      {explanation && (
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 text-xs text-slate-300">
+          <div className="flex items-center gap-2 text-cyan-400 font-bold">
+            <Sparkles className="w-4 h-4" />
+            <span>AI Neural Architecture Rationale</span>
+          </div>
+          <div className="text-slate-300 prose prose-invert prose-xs max-w-none">
+            <MarkdownRenderer content={explanation} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

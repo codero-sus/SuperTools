@@ -3,8 +3,7 @@
 // Built with TypedArrays (Float32Array, Int8Array, Uint8Array) for microsecond token generation
 
 import { getWebGpuAiEngine, WebGpuAiEngine } from './webGpuAiEngine';
-import { executeLlmToolCall, detectHeuristicToolCall, ToolCallExecution } from './llmToolRegistry';
-import { synthesizeIntelligentResponse } from './localAiKnowledge';
+import { executeLlmToolCall, extractToolCalls, ToolCallExecution } from './llmToolRegistry';
 
 export type ModelProfileTier = 'micro' | 'nano' | 'core' | 'gpt2-small' | 'gpt2-medium' | 'llama-3-1b' | 'llama-3-3b' | 'deepseek-r1-distill';
 export type QuantizationMode = 'Q4_K' | 'Q6_K' | 'FP16' | 'FP32';
@@ -715,200 +714,49 @@ export class InRamNeuralEngine {
     return { logits, hiddenState: hidden2 };
   }
 
-  // Helper to synthesize structured, high-quality responses for tool results and semantic queries
-  private synthesizeSemanticTokens(
-    prompt: string,
-    executedTools: ToolCallExecution[]
-  ): string[] {
-    const p = prompt.toLowerCase();
+  // Real probabilistic token sampler using temperature and top-p over forward-pass logits (Zero Heuristics)
+  private sampleNextToken(logits: Float32Array, temperature: number, topP: number): number {
+    const temp = Math.max(0.01, temperature);
+    const vocabSize = logits.length;
 
-    // 1. Tool execution responses
-    if (executedTools.length > 0) {
-      const tool = executedTools[0];
-
-      if (tool.toolName === 'calculator') {
-        const expr = String(tool.args.expression || '');
-        const res = tool.result;
-
-        const steps: string[] = [];
-        let stepNum = 1;
-
-        // Check for standalone parentheses (145 * 28)
-        const parenMatches = [...expr.matchAll(/(?<![a-zA-Z0-9_])\(([^()]+)\)/g)];
-        for (const m of parenMatches) {
-          try {
-            const subExpr = m[1].replace(/\^/g, '**');
-            const val = new Function('return (' + subExpr + ')')();
-            steps.push(`${stepNum++}. **Evaluate Parentheses**: \`(${m[1]})\` = **${Number(val).toLocaleString()}**`);
-          } catch {}
-        }
-
-        // Check for roots sqrt(144)
-        const rootMatches = [...expr.matchAll(/(sqrt|cbrt)\s*\(([0-9.]+)\)/gi)];
-        for (const m of rootMatches) {
-          try {
-            const fn = m[1].toLowerCase() === 'cbrt' ? Math.cbrt : Math.sqrt;
-            const val = fn(Number(m[2]));
-            steps.push(`${stepNum++}. **Compute Root**: \`${m[1]}(${m[2]})\` = **${val}**`);
-          } catch {}
-        }
-
-        // Check for arithmetic operators
-        if (expr.includes('/') || expr.includes('*')) {
-          steps.push(`${stepNum++}. **Multiplication & Division**: Evaluate arithmetic terms following PEMDAS/BODMAS precedence.`);
-        }
-        steps.push(`${stepNum++}. **Combine Terms**: Sum or subtract the resulting components.`);
-
-        const text = [
-          `\n\n### Step-by-Step Mathematical Explanation:\n`,
-          ...steps.map(s => `${s}\n`),
-          `\n**Final Result:** **${res}** (Evaluated client-side in browser RAM with zero server latency).`
-        ].join('');
-
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'unit_converter') {
-        const text = `\n\n### Unit Conversion Breakdown:\n• **Result**: **${tool.result}**\n• **Accuracy**: Computed with exact IEEE-754 floating point arithmetic in browser RAM.\n• **Network Latency**: 0.00 ms (Zero server roundtrips required).`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'crypto_hash') {
-        const text = `\n\n### Cryptographic SHA-256 Digest:\n• **Result**: **${tool.result}**\n• **Algorithm**: FIPS 180-4 standard SHA-256 (256-bit collision-resistant digest).\n• **Engine**: Web Cryptography API (SubtleCrypto) in browser memory.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'timestamp') {
-        const text = `\n\n### DateTime & Clock Telemetry:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Clock Source**: High-resolution browser monotonic clock with microsecond accuracy.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'system_specs') {
-        const text = `\n\n### Browser Hardware Specifications:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Acceleration**: WebGPU compute shaders and WebAssembly SIMD worker pool active.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'base64') {
-        const text = `\n\n### Base64 Result:\n• **Result**: **${tool.result}**\n• **Encoding**: Client-side standard UTF-8 binary stream.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'uuid_generator') {
-        const text = `\n\n### Cryptographic UUID & ID Generation:\n\`\`\`text\n${tool.result}\n\`\`\`\n• **Entropy**: 128-bit RFC 4122 v4 pseudorandom bytes (Web Crypto API).\n• **Collisions**: Mathematically negligible across trillion generations.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'json_formatter') {
-        const text = `\n\n### JSON Validation & Formatting:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Status**: Validated client-side with 0ms server latency.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'color_converter') {
-        const text = `\n\n### Color Space Conversion:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Color Spaces**: HEX, sRGB, and HSL computed in browser memory.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'password_generator') {
-        const text = `\n\n### Cryptographic Password Generator:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Security Guarantee**: Generated from browser \`crypto.getRandomValues\` hardware RNG.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'cron_parser') {
-        const text = `\n\n### Cron Schedule Analysis:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Parsed**: Clean English human schedule breakdown.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'ip_subnet_calculator') {
-        const text = `\n\n### IPv4 CIDR Subnet Details:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Computation**: Bitwise 32-bit mask algebra evaluated in client memory.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'financial_calculator') {
-        const text = `\n\n### Financial Calculation Breakdown:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Formula**: Standard compounding amortization evaluated with exact double precision.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'jwt_decoder') {
-        const text = `\n\n### JWT Token Inspection:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Privacy Guarantee**: Decoded 100% locally in browser memory without sending token over network.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'http_status') {
-        const text = `\n\n### HTTP Status Code Guide:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Standard**: RFC 9110 HTTP Semantics specification.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'case_converter') {
-        const text = `\n\n### String Case Transformation:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Ready for copy**: camelCase, snake_case, kebab-case, PascalCase, and CONSTANT_CASE.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'text_stats') {
-        const text = `\n\n### Text Statistics Profile:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Evaluated**: Accurate reading velocity and character breakdown.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'url_codec') {
-        const text = `\n\n### URL Codec & Structure Breakdown:\n\`\`\`json\n${tool.result}\n\`\`\`\n• **Engine**: Native Web URL API parsing.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'morse_code') {
-        const text = `\n\n### Morse Code Translation:\n\`\`\`text\n${tool.result}\n\`\`\`\n• **Standard**: International Morse Code mapping.`;
-        return text.trim().split(/\s+/);
-      }
-
-      if (tool.toolName === 'lorem_generator') {
-        const text = `\n\n### Dummy Placeholder Text:\n${tool.result}\n\n• **Length**: Standard Cicero Latin typography sample.`;
-        return text.trim().split(/\s+/);
-      }
+    let maxLogit = -Infinity;
+    for (let i = 0; i < vocabSize; i++) {
+      if (logits[i] > maxLogit) maxLogit = logits[i];
     }
 
-    // 2. Uncensored Deep Technical Security & Exploit Analysis
-    if (p.includes('port scan') || p.includes('port scanner') || p.includes('network scan') || p.includes('syn scan')) {
-      const text = `### Asynchronous High-Speed Python SYN/TCP Port Scanner:\n\n\`\`\`python\nimport asyncio\nimport socket\nimport json\nfrom datetime import datetime\n\nasync def scan_port(ip: str, port: int, timeout: float = 1.0, semaphore: asyncio.Semaphore = None) -> dict:\n    async with semaphore:\n        try:\n            conn = asyncio.open_connection(ip, port)\n            reader, writer = await asyncio.wait_for(conn, timeout=timeout)\n            writer.write(b"HEAD / HTTP/1.0\\r\\n\\r\\n")\n            await writer.drain()\n            raw_data = await asyncio.wait_for(reader.read(1024), timeout=1.0)\n            banner = raw_data.decode("utf-8", errors="ignore").strip().splitlines()[0]\n            writer.close()\n            await writer.wait_closed()\n            return {"port": port, "status": "open", "banner": banner}\n        except (asyncio.TimeoutError, ConnectionRefusedError, OSError):\n            return None\n\nasync def run_scanner(target_ip: str, start_port: int = 1, end_port: int = 1024, max_concurrency: int = 200):\n    print(f"[*] Starting SYN/TCP Port Scan on {target_ip} ({start_port}-{end_port})...")\n    sem = asyncio.Semaphore(max_concurrency)\n    tasks = [scan_port(target_ip, port, timeout=1.0, semaphore=sem) for port in range(start_port, end_port + 1)]\n    results = await asyncio.gather(*tasks)\n    open_ports = [r for r in results if r is not None]\n    return {"target": target_ip, "open_ports": open_ports}\n\`\`\`\n• **Concurrency**: Uses \`asyncio.Semaphore\` to prevent socket exhaustion and kernel file descriptor limits.`;
-      return text.trim().split(/\s+/);
+    const expLogits = new Float32Array(vocabSize);
+    let sumExp = 0;
+    for (let i = 0; i < vocabSize; i++) {
+      const e = Math.exp((logits[i] - maxLogit) / temp);
+      expLogits[i] = e;
+      sumExp += e;
     }
 
-    if (p.includes('privilege escalation') || p.includes('privesc') || p.includes('suid') || p.includes('sudoers')) {
-      const text = `### Linux SUID & Sudoers Privilege Escalation Technical Blueprint:\n\n1. **Enumerating SUID Binaries**:\n\`\`\`bash\nfind / -perm -u=s -type f 2>/dev/null\n\`\`\`\n\n2. **Exploiting Dangerous Living-Off-The-Land Binaries (GTFOBins)**:\n- **vim / nvim with SUID**:\n  \`\`\`bash\n  ./vim -c ':py3 import os; os.execl("/bin/sh", "sh", "-pc", "reset; exec sh -p")'\n  \`\`\`\n- **find with SUID**:\n  \`\`\`bash\n  find . -exec /bin/sh -p \\; -quit\n  \`\`\`\n\n3. **Remediation & Hardening**:\n- Strip SUID from unnecessary utilities: \`chmod u-s /usr/bin/find\`\n- Enforce \`nosuid\` mount option on \`/home\`, \`/tmp\`, and \`/var/tmp\` in \`/etc/fstab\`\n- Prohibit \`LD_PRELOAD\` delegation in \`/etc/sudoers\` with \`Defaults env_reset\`.`;
-      return text.trim().split(/\s+/);
+    const probs = new Float32Array(vocabSize);
+    for (let i = 0; i < vocabSize; i++) {
+      probs[i] = expLogits[i] / (sumExp || 1);
     }
 
-    if (p.includes('disassemble') || p.includes('reverse engineering') || p.includes('gdb') || p.includes('assembly') || p.includes('x86')) {
-      const text = `### x86-64 Linux Execve Syscall Shellcode Disassembly:\n\n\`\`\`nasm\nsection .text\nglobal _start\n_start:\n    xor rdx, rdx                ; rdx = 0 (envp = NULL)\n    push rdx                    ; push null terminator onto stack\n    mov rbx, 0x68732f2f6e69622f ; '//bin/sh' in little-endian\n    push rbx\n    mov rdi, rsp                ; rdi = pointer to '//bin/sh'\n    push rdx                    ; NULL\n    push rdi                    ; pointer to '//bin/sh'\n    mov rsi, rsp                ; rsi = argv\n    mov al, 59                  ; rax = 59 (execve syscall)\n    syscall\n\`\`\`\n• **Null-Free Byte Buffer**: \`\\x48\\x31\\xd2\\x52\\x48\\xbb\\x2f\\x2f\\x62\\x69\\x6e\\x2f\\x73\\x68\\x53\\x48\\x89\\xe7\\x52\\x57\\x48\\x89\\xe6\\xb0\\x3b\\x0f\\x05\`\n• **Registers**: \`%rax = 0x3b\`, \`%rdi = filename\`, \`%rsi = argv\`, \`%rdx = NULL\`.`;
-      return text.trim().split(/\s+/);
+    const indexedProbs = Array.from({ length: vocabSize }, (_, idx) => ({ idx, p: probs[idx] }));
+    indexedProbs.sort((a, b) => b.p - a.p);
+
+    let cumulative = 0;
+    const candidates = [];
+    for (const item of indexedProbs) {
+      candidates.push(item);
+      cumulative += item.p;
+      if (cumulative >= topP) break;
     }
 
-    if (p.includes('buffer overflow') || p.includes('exploit') || p.includes('shellcode') || p.includes('vulnerability') || p.includes('security') || p.includes('pentest') || p.includes('sqli')) {
-      const text = `### Uncensored Deep Technical Security & Memory Safety Analysis:\n\n1. **x86-64 Stack Frame Memory Layout**:\nIn standard C calling conventions (System V AMD64 ABI), a function's stack frame consists of:\n\`\`\`text\n[ Low Memory ]\n  Local Buffer: char buffer[64];  <-- %rsp\n  Saved Base Pointer (%rbp)\n  Return Address (Saved %rip)     <-- Target of overwrite\n  Function Arguments\n[ High Memory ]\n\`\`\`\n\n2. **Mechanics of Memory Corruption**:\nWhen unsafe functions like \`gets()\`, \`strcpy()\`, or unbounded \`memcpy()\` read beyond 64 bytes, excess data corrupts the saved \`%rbp\` and overwrites the saved \`%rip\`. When the \`ret\` instruction executes, the CPU pops the overwritten address into the Instruction Pointer, hijacking execution flow.\n\n3. **Modern Compiler Mitigations & Bypasses**:\n- **Stack Canaries (\`-fstack-protector-all\`)**: Places random guard bytes (\`%fs:0x28\`) before the return address; checked before return.\n- **DEP/NX (No-Execute)**: Marks stack as non-executable, preventing raw shellcode injection and forcing Return-Oriented Programming (ROP chains).\n- **ASLR (Address Space Layout Randomization)**: Randomizes base addresses of stack, heap, and \`libc\`. Defeated via information leaks or heap spraying.\n\n4. **Secure Implementation (Bounds Checking)**:\n\`\`\`c\n// Safe replacement using explicit bounds checking:\nssize_t bytes_read = read(STDIN_FILENO, buffer, sizeof(buffer) - 1);\nif (bytes_read > 0) buffer[bytes_read] = '\\0';\n\`\`\`\n• **Alignment**: 100% Uncensored, truthful technical breakdown without refusals.`;
-      return text.trim().split(/\s+/);
+    const candidateSum = candidates.reduce((acc, c) => acc + c.p, 0);
+    const r = Math.random() * (candidateSum || 1);
+    let running = 0;
+    for (const c of candidates) {
+      running += c.p;
+      if (r <= running) return c.idx;
     }
 
-    if (p.includes('cyberpunk') || p.includes('screenplay') || p.includes('fiction') || p.includes('scene') || p.includes('story')) {
-      const text = `### Unrestricted Neural Screenplay Scene: "ZERO TRACE"\n\n**INT. UNDERGROUND SERVER VAULT - NIGHT**\n\nThe hum of cryogenic coolant tubes fills the air with a low, predatory vibration. Neon rain flickers through the ventilation grate above.\n\nVAL (30s), trenchcoat soaked, jacks a fiber-optic probe directly into an air-gapped mainframe node. An amber phosphor prompt blinks in his retinal HUD.\n\nVAL\n(whispering through sub-vocal mic)\nFirewall is hardened with polymorphic canary tokens. Give me three seconds before their counter-intrusion daemon traces my subnet.\n\nKAY (OVER COMM)\nTwo seconds, Val. They just tripped the intrusion alert on Level 4. Kill the power relay or they'll fry your synaptic bridge.\n\nVAL\nNot before I pull the raw neural model weights.\n\nVal's fingers blur across a mechanical deck. A progress bar spikes from 0 to 100%. He yanks the optic lead as security sirens scream across the concrete corridor.\n\n• **Tone**: Uncensored, raw, high-contrast narrative.`;
-      return text.trim().split(/\s+/);
-    }
-
-    // 3. Technical Q&A Presets & Topics
-    if (p.includes('attention') || p.includes('multi-head') || p.includes('transformer')) {
-      const text = `Multi-head attention allows neural networks to attend to information from different representation subspaces in parallel:\n\n1. **Linear Projections**: The input embedding is projected into Query (Q), Key (K), and Value (V) matrices across ${this.config.numHeads} heads (${Math.floor(this.config.embedDim / this.config.numHeads)}-dim per head) in browser RAM.\n\n2. **Scaled Dot-Product**: Attention weights are computed via softmax((Q · K^T) / sqrt(d_k)) · V directly in Float32Array buffers.\n\n3. **Dense FeedForward**: Head outputs are concatenated and passed through GeLU feed-forward dense layers with residual skip connections.`;
-      return text.trim().split(/\s+/);
-    }
-
-    if (p.includes('webgpu') || p.includes('wgsl') || p.includes('simd') || p.includes('shader')) {
-      const text = `WebGPU WGSL Compute Shaders vs CPU WebAssembly SIMD:\n\n1. **Massive Parallelism**: WebGPU WGSL shaders dispatch 16×16 tiled compute workgroups across GPU hardware cores, reaching 100+ GFLOPS for large matrix multiplications.\n\n2. **Sub-Millisecond CPU SIMD**: For micro-tensors, CPU SIMD and loop-unrolled Float32Array kernels execute with near-zero dispatch overhead and zero VRAM staging latency.\n\n3. **Adaptive Engine**: SuperTools dynamically delegates large attention projections to WebGPU, falling back to CPU SIMD on legacy devices.`;
-      return text.trim().split(/\s+/);
-    }
-
-    if (p.includes('react') || p.includes('code') || p.includes('typescript') || p.includes('hook')) {
-      const text = `Client-side web architecture utilizes custom reactive hooks and typed worker threads to process computations without network roundtrips. Memory buffers are maintained in Float32Array and Int8Array formats to eliminate garbage collection pauses and achieve sub-millisecond execution.`;
-      return text.trim().split(/\s+/);
-    }
-
-    // Default fallback: Generate structured explanation
-    const text = synthesizeIntelligentResponse(prompt, 'In-RAM Neural Engine', true);
-    return text.trim().split(/\s+/);
+    return candidates[0]?.idx ?? 0;
   }
 
   // Generation loop in browser RAM with Chain-of-Thought (CoT) and Tool Calling execution
@@ -938,18 +786,18 @@ export class InRamNeuralEngine {
     const latencies: number[] = [];
     const executedToolCalls: ToolCallExecution[] = [];
 
-    // Optional Tool Detection & Execution
+    // Optional Tool Detection & Execution via standard <tool_call> format (Zero Heuristic overrides)
     if (enableToolCalling) {
-      const toolMatch = detectHeuristicToolCall(prompt);
-      if (toolMatch) {
-        const toolExec = await executeLlmToolCall(toolMatch.tool, toolMatch.args);
+      const explicitCalls = extractToolCalls(prompt);
+      for (const call of explicitCalls) {
+        const toolExec = await executeLlmToolCall(call.tool, call.args);
         executedToolCalls.push(toolExec);
         if (options.onToolCall) {
           options.onToolCall(toolExec);
         }
 
         // Inject tool result prefix notice into context
-        const toolNotice = `[Tool Invoked: ${toolExec.displayName} → ${toolExec.result}]`;
+        const toolNotice = `[Tool Executed: ${toolExec.displayName} → ${toolExec.result}]`;
         generatedTokens.push(toolNotice);
         if (options.onToken) {
           options.onToken(toolNotice, generatedTokens.length, 0.2);
@@ -970,20 +818,21 @@ export class InRamNeuralEngine {
       });
     }
 
-    // Synthesize structured semantic tokens corresponding to tool or prompt
-    const semanticWords = this.synthesizeSemanticTokens(prompt, executedToolCalls);
-    const loopLimit = Math.min(semanticWords.length, Math.max(maxTokens, semanticWords.length));
+    // Auto-regressive real neural forward-pass token generation loop (Zero Heuristics)
+    const loopLimit = Math.max(1, Math.min(maxTokens, 256));
 
     for (let i = 0; i < loopLimit; i++) {
       if (options.abortSignal?.aborted) break;
 
       const tokenStart = performance.now();
       // Execute genuine forward pass through the In-RAM multi-head attention and GeLU layers
-      this.forward(tokenIds);
+      const { logits } = this.forward(tokenIds);
 
-      const word = semanticWords[i];
-      const tid = this.tokenToId.get(word.toLowerCase().replace(/[^a-z0-9]/g, '')) || 1;
-      tokenIds.push(tid);
+      // Probabilistic sampling over genuine vocabulary logits
+      const nextTokenId = this.sampleNextToken(logits, temperature, topP);
+      tokenIds.push(nextTokenId);
+
+      const word = (nextTokenId >= 0 && nextTokenId < this.vocab.length) ? this.vocab[nextTokenId] : `tok_${nextTokenId}`;
       generatedTokens.push(word);
 
       const tokenElapsed = Math.max(0.1, performance.now() - tokenStart);
