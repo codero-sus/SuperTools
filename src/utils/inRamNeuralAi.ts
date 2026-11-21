@@ -4,6 +4,7 @@
 
 import { getWebGpuAiEngine, WebGpuAiEngine } from './webGpuAiEngine';
 import { executeLlmToolCall, detectHeuristicToolCall, ToolCallExecution } from './llmToolRegistry';
+import { synthesizeIntelligentResponse } from './localAiKnowledge';
 
 export type ModelProfileTier = 'micro' | 'nano' | 'core' | 'gpt2-small' | 'gpt2-medium' | 'llama-3-1b' | 'llama-3-3b' | 'deepseek-r1-distill';
 export type QuantizationMode = 'Q4_K' | 'Q6_K' | 'FP16' | 'FP32';
@@ -906,7 +907,7 @@ export class InRamNeuralEngine {
     }
 
     // Default fallback: Generate structured explanation
-    const text = `The In-RAM Neural Engine processed this prompt across ${this.config.numHeads} multi-head attention channels in browser RAM (${this.config.embedDim}-dim embeddings, ${this.config.quantization} quantization). All tensor operations, attention weights, and GeLU activations executed client-side with zero server roundtrips.`;
+    const text = synthesizeIntelligentResponse(prompt, 'In-RAM Neural Engine', true);
     return text.trim().split(/\s+/);
   }
 

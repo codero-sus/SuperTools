@@ -11,6 +11,7 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
 import { getInRamNeuralEngine } from '../utils/inRamNeuralAi';
+import { synthesizeIntelligentResponse } from '../utils/localAiKnowledge';
 
 interface AiChatStudioProps {
   hardwareLevel?: number;
@@ -279,7 +280,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
     }
 
     // 5. Default Comprehensive Persona Synthesis
-    return `### ${personaObj.name} Analysis & Solution\n\nRegarding: *"${prompt}"*\n\n1. **Core Diagnosis**: Addressing this effectively requires focusing on modular isolation, deterministic resource bounds, and high clarity.\n2. **Implementation Strategy**:\n   - Prioritize clean contracts with explicit inputs and outputs.\n   - Enforce low-overhead execution suitable for client-side environments (Level ${hardwareLevel} [${currentTier.targetRamGb}GB RAM]).\n   - Validate inputs early to eliminate edge-case failures.\n3. **Actionable Next Steps**:\n   - Review performance metrics and verify response latency stays within the 1s–7s threshold.\n   - Let me know if you would like me to deep-dive into code refactoring, schema design, or further step-by-step elaboration!`;
+    return synthesizeIntelligentResponse(prompt, personaObj.name, isUncensoredMode);
   };
 
   // Send message and execute streaming generation
@@ -313,43 +314,103 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
       try {
         const controller = new AbortController();
         abortControllerRef.current = controller;
-
         const modelChoice = customModel || 'deepseek-r1';
-        const res = await fetch('https://text.pollinations.ai/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: effectiveSystemPrompt },
-              ...nextMessages.map(m => ({ role: m.role, content: m.content }))
-            ],
-            model: modelChoice,
-            jsonMode: false,
-            seed: Math.floor(Math.random() * 100000)
-          }),
-          signal: controller.signal
-        });
+        let responseText = '';
 
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        // Strategy A: Direct GET request to Pollinations (Zero preflight CORS, high speed)
+        try {
+          const encodedPrompt = encodeURIComponent(text);
+          const encodedSystem = encodeURIComponent(effectiveSystemPrompt);
+          const getUrl = `https://text.pollinations.ai/${encodedPrompt}?model=${encodeURIComponent(modelChoice)}&system=${encodedSystem}&seed=${Date.now()}`;
+          const getRes = await fetch(getUrl, {
+            signal: controller.signal,
+            headers: { 'Accept': 'text/plain, */*' }
+          });
+          if (getRes.ok) {
+            const raw = await getRes.text();
+            if (raw && raw.trim() && !raw.includes('<!DOCTYPE html>') && !raw.includes('<html')) {
+              responseText = raw.trim();
+            }
+          }
+        } catch (e) {
+          console.warn('Pollinations GET attempt failed:', e);
         }
 
-        const responseText = await res.text();
-        const elapsed = sw.total();
-        setLastLatencySec(sw.formatted());
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `msg-${Date.now()}`,
-            role: 'assistant',
-            content: responseText || 'No response generated from free uncensored engine.',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            latencyMs: elapsed,
-            tokensCount: Math.round((responseText || '').length / 3.8)
+        // Strategy B: OpenAI-compatible POST endpoint
+        if (!responseText && !controller.signal.aborted) {
+          try {
+            const postRes = await fetch('https://text.pollinations.ai/openai/chat/completions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: modelChoice,
+                messages: [
+                  { role: 'system', content: effectiveSystemPrompt },
+                  ...nextMessages.map(m => ({ role: m.role, content: m.content }))
+                ],
+                seed: Math.floor(Math.random() * 100000)
+              }),
+              signal: controller.signal
+            });
+            if (postRes.ok) {
+              const data = await postRes.json();
+              responseText = data.choices?.[0]?.message?.content || '';
+            }
+          } catch (e) {
+            console.warn('Pollinations POST attempt failed:', e);
           }
-        ]);
-        setIsGenerating(false);
-        return;
+        }
+
+        // Strategy C: Puter.js in-browser AI (Free Real Claude / DeepSeek / GPT-4o with zero API key)
+        if (!responseText && !controller.signal.aborted && typeof (window as any).puter?.ai?.chat === 'function') {
+          try {
+            const puterModel = modelChoice.includes('deepseek') ? 'deepseek-chat' : 'claude-3-5-sonnet';
+            const puterRes = await (window as any).puter.ai.chat(
+              `${effectiveSystemPrompt}\n\nUser: ${text}`,
+              { model: puterModel }
+            );
+            const pText = typeof puterRes === 'string' ? puterRes : puterRes?.message?.content || puterRes?.text;
+            if (pText && pText.trim()) {
+              responseText = pText.trim();
+            }
+          } catch (e) {
+            console.warn('Puter.js attempt failed:', e);
+          }
+        }
+
+        // Strategy D: Fallback to fast secondary model (Mistral)
+        if (!responseText && !controller.signal.aborted) {
+          try {
+            const fbUrl = `https://text.pollinations.ai/${encodeURIComponent(text)}?model=mistral&system=${encodeURIComponent(effectiveSystemPrompt)}&seed=${Date.now()}`;
+            const fbRes = await fetch(fbUrl, { signal: controller.signal });
+            if (fbRes.ok) {
+              const raw = await fbRes.text();
+              if (raw && raw.trim() && !raw.includes('<!DOCTYPE html>') && !raw.includes('<html')) {
+                responseText = raw.trim();
+              }
+            }
+          } catch (e) {
+            console.warn('Pollinations Mistral fallback failed:', e);
+          }
+        }
+
+        if (responseText) {
+          const elapsed = sw.total();
+          setLastLatencySec(sw.formatted());
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `msg-${Date.now()}`,
+              role: 'assistant',
+              content: responseText,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              latencyMs: elapsed,
+              tokensCount: Math.round(responseText.length / 3.8)
+            }
+          ]);
+          setIsGenerating(false);
+          return;
+        }
       } catch (err: any) {
         console.warn('Free Uncensored API request failed, falling back to local engine:', err);
       }
