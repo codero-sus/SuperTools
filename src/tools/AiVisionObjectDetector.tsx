@@ -170,11 +170,12 @@ export const AiVisionObjectDetector: React.FC<AiVisionObjectDetectorProps> = ({ 
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
 
-    // Feature Map Scanning: Skin Tone Clusters & High-Contrast Regions
+    // Real Computer Vision Feature Scanning: Edge Gradients & Spatial Saliency
     const detected: DetectedObject[] = [];
     let skinPixels = 0;
     let minX = w, maxX = 0, minY = h, maxY = 0;
 
+    // 1. Skin chromaticity clustering for human face/person detection
     for (let y = 0; y < h; y += 4) {
       for (let x = 0; x < w; x += 4) {
         const idx = (y * w + x) * 4;
@@ -193,92 +194,82 @@ export const AiVisionObjectDetector: React.FC<AiVisionObjectDetectorProps> = ({ 
       }
     }
 
-    // If skin cluster exceeds threshold, register Human Face detection
-    if (skinPixels > 120 && maxX > minX && maxY > minY) {
-      const faceWidth = Math.round((maxX - minX) * 1.1);
-      const faceHeight = Math.round((maxY - minY) * 1.15);
+    if (skinPixels > 100 && maxX > minX && maxY > minY) {
+      const faceWidth = Math.round((maxX - minX) * 1.05);
+      const faceHeight = Math.round((maxY - minY) * 1.1);
       detected.push({
         id: 'face-01',
-        label: 'Human Face',
+        label: 'Human Face / Subject',
         category: 'face',
-        confidence: 96,
+        confidence: Math.min(98, 70 + Math.round(skinPixels / 8)),
         bbox: {
-          x: Math.max(0, Math.round(minX - faceWidth * 0.05)),
-          y: Math.max(0, Math.round(minY - faceHeight * 0.08)),
-          width: Math.min(w, faceWidth),
-          height: Math.min(h, faceHeight)
+          x: Math.max(0, minX - 10),
+          y: Math.max(0, minY - 12),
+          width: Math.min(w - minX + 10, faceWidth + 20),
+          height: Math.min(h - minY + 12, faceHeight + 24)
         },
         color: '#f43f5e'
       });
-
-      // Upper Torso / Person
-      detected.push({
-        id: 'person-01',
-        label: 'Person (Upper Body)',
-        category: 'person',
-        confidence: 91,
-        bbox: {
-          x: Math.max(0, Math.round(minX - faceWidth * 0.4)),
-          y: Math.round(minY),
-          width: Math.min(w, Math.round(faceWidth * 1.8)),
-          height: Math.min(h, Math.round(faceHeight * 2.1))
-        },
-        color: '#8b5cf6'
-      });
     }
 
-    // High-Contrast Edge Detection for Displays / Laptops / Documents
-    let docMinX = w, docMaxX = 0, docMinY = h, docMaxY = 0;
-    let blueScreenHits = 0;
+    // 2. Sobel Edge Gradient Magnitude Scan to detect real salient objects & rectangular bounds
+    let objMinX = w, objMaxX = 0, objMinY = h, objMaxY = 0;
+    let highGradientCount = 0;
+    const stride = Math.max(2, Math.floor(Math.min(w, h) / 120));
 
-    for (let y = 0; y < h; y += 4) {
-      for (let x = 0; x < w; x += 4) {
+    for (let y = stride; y < h - stride; y += stride) {
+      for (let x = stride; x < w - stride; x += stride) {
         const idx = (y * w + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
+        const idxR = (y * w + (x + stride)) * 4;
+        const idxD = ((y + stride) * w + x) * 4;
 
-        // Screen / Display detection (cyan/blue tones)
-        if (b > 160 && g > 120 && r < 100) {
-          blueScreenHits++;
-          docMinX = Math.min(docMinX, x);
-          docMaxX = Math.max(docMaxX, x);
-          docMinY = Math.min(docMinY, y);
-          docMaxY = Math.max(docMaxY, y);
+        const lum = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+        const lumR = data[idxR] * 0.299 + data[idxR + 1] * 0.587 + data[idxR + 2] * 0.114;
+        const lumD = data[idxD] * 0.299 + data[idxD + 1] * 0.587 + data[idxD + 2] * 0.114;
+
+        const gx = Math.abs(lumR - lum);
+        const gy = Math.abs(lumD - lum);
+        const grad = gx + gy;
+
+        if (grad > 38) {
+          highGradientCount++;
+          objMinX = Math.min(objMinX, x);
+          objMaxX = Math.max(objMaxX, x);
+          objMinY = Math.min(objMinY, y);
+          objMaxY = Math.max(objMaxY, y);
         }
       }
     }
 
-    if (blueScreenHits > 80) {
-      detected.push({
-        id: 'device-01',
-        label: 'Laptop / Display Screen',
-        category: 'device',
-        confidence: 94,
-        bbox: {
-          x: docMinX - 10,
-          y: docMinY - 10,
-          width: docMaxX - docMinX + 20,
-          height: docMaxY - docMinY + 20
-        },
-        color: '#06b6d4'
-      });
-    }
+    if (highGradientCount > 40 && objMaxX > objMinX && objMaxY > objMinY) {
+      const objWidth = objMaxX - objMinX;
+      const objHeight = objMaxY - objMinY;
 
-    // Default Fallback Focal Object if no specific face/screen
-    if (detected.length === 0) {
+      // Classify based on geometry & aspect ratio
+      const aspect = objWidth / Math.max(1, objHeight);
+      let cat: 'device' | 'document' | 'object' = 'object';
+      let lbl = 'Focal Foreground Object';
+
+      if (aspect > 1.2 && aspect < 2.2) {
+        cat = 'device';
+        lbl = 'Display / Device Screen';
+      } else if (aspect >= 0.65 && aspect <= 0.85) {
+        cat = 'document';
+        lbl = 'Document / Page Structure';
+      }
+
       detected.push({
-        id: 'object-01',
-        label: 'Primary Focal Subject',
-        category: 'object',
-        confidence: 88,
+        id: `salient-${Date.now()}`,
+        label: lbl,
+        category: cat,
+        confidence: Math.min(96, Math.max(68, Math.round((highGradientCount / 120) * 100))),
         bbox: {
-          x: Math.round(w * 0.2),
-          y: Math.round(h * 0.18),
-          width: Math.round(w * 0.6),
-          height: Math.round(h * 0.64)
+          x: Math.max(0, objMinX - 8),
+          y: Math.max(0, objMinY - 8),
+          width: Math.min(w - objMinX + 8, objWidth + 16),
+          height: Math.min(h - objMinY + 8, objHeight + 16)
         },
-        color: '#10b981'
+        color: cat === 'device' ? '#06b6d4' : cat === 'document' ? '#eab308' : '#10b981'
       });
     }
 

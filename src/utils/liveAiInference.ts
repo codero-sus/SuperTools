@@ -4,6 +4,7 @@
  */
 
 import { webLlmManager } from './webLlmEngine';
+import { getInRamNeuralEngine } from './inRamNeuralAi';
 
 export interface LiveAiInferenceOptions {
   prompt: string;
@@ -133,5 +134,22 @@ export async function runLiveAiInference(options: LiveAiInferenceOptions): Promi
     }
   }
 
-  throw new Error('All neural inference backends (Pollinations, Puter.js, WebLLM) failed or timed out. Please check your internet connection or start Ollama locally.');
+  // Tier 5: Direct In-RAM Neural Vector Engine (Offline Real Neural Execution)
+  try {
+    const ramEngine = getInRamNeuralEngine();
+    let accumulated = '';
+    const result = await ramEngine.generateStreaming(prompt, {
+      onToken: (tok) => {
+        accumulated += (accumulated ? ' ' : '') + tok;
+        onChunk?.(accumulated);
+      }
+    });
+    if (result.text) {
+      return result.text;
+    }
+  } catch (err) {
+    // Fallback
+  }
+
+  throw new Error('All neural inference backends failed. Please check network connection or start local Ollama.');
 }

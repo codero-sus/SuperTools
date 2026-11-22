@@ -1079,7 +1079,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ hardwareLevel = 3 }) => {
 
         {/* 1-Click Samples */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
-          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">Demos:</span>
+          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">Sample Presets:</span>
           <button
             onClick={() => {
               setSelectedModel('receipt-parser');

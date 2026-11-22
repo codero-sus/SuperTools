@@ -366,7 +366,7 @@ export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwa
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-400">1-Click Demos:</span>
+          <span className="text-xs font-bold text-slate-400">Sample Presets:</span>
           <button
             onClick={() => loadDemo('product')}
             className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all"
@@ -661,7 +661,7 @@ export const AiBackgroundRemover: React.FC<AiBackgroundRemoverProps> = ({ hardwa
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-2">
                   <Sparkles className="w-10 h-10 text-indigo-400 opacity-40" />
                   <span className="text-xs font-bold">No Image Loaded</span>
-                  <span className="text-[11px] text-slate-500">Pick a demo above or upload an image</span>
+                  <span className="text-[11px] text-slate-500">Upload your image or pick a sample preset above</span>
                 </div>
               )}
             </div>

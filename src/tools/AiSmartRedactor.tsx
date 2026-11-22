@@ -250,7 +250,7 @@ export const AiSmartRedactor: React.FC<AiSmartRedactorProps> = ({ hardwareLevel 
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-400">1-Click Demos:</span>
+          <span className="text-xs font-bold text-slate-400">Sample Documents:</span>
           <button
             onClick={() => loadDemo('idcard')}
             className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all"

@@ -229,7 +229,7 @@ export const AiPaletteExtractor: React.FC<AiPaletteExtractorProps> = ({ hardware
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-400">1-Click Demos:</span>
+          <span className="text-xs font-bold text-slate-400">Sample Palettes:</span>
           <button
             onClick={() => loadDemo('sunset')}
             className="px-2.5 py-1 rounded-xl bg-orange-50 dark:bg-orange-950/60 hover:bg-orange-100 text-orange-700 dark:text-orange-300 text-xs font-bold transition-all"
@@ -444,7 +444,7 @@ export const AiPaletteExtractor: React.FC<AiPaletteExtractorProps> = ({ hardware
               <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-2 py-16">
                 <Palette className="w-10 h-10 text-indigo-400 opacity-40" />
                 <span className="text-xs font-bold">No Palette Extracted</span>
-                <span className="text-[11px] text-slate-500">Pick a demo above or upload an image</span>
+                <span className="text-[11px] text-slate-500">Upload your image or pick a sample palette above</span>
               </div>
             )}
           </div>

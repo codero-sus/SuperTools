@@ -313,7 +313,7 @@ export const AiAudioStemSplitter: React.FC<AiAudioStemSplitterProps> = ({ hardwa
         </div>
       )}
 
-      {/* Quick Audio Demos */}
+      {/* Sample Audio Tracks */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-slate-400">Quick Test Tracks:</span>

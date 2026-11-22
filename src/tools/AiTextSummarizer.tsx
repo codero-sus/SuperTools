@@ -164,7 +164,7 @@ export const AiTextSummarizer: React.FC<AiTextSummarizerProps> = ({ hardwareLeve
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto">
-          <span className="text-xs font-bold text-slate-400">1-Click Demos:</span>
+          <span className="text-xs font-bold text-slate-400">Sample Articles:</span>
           <button
             onClick={() => loadDemo('tech')}
             className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all"
