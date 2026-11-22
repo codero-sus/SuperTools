@@ -135,10 +135,11 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Probe WebGPU and update info
+  // Probe WebGPU and update info (Auto-enable WebGPU acceleration if available)
   useEffect(() => {
     webGpuEngine.init().then(info => {
       setGpuInfo(info);
+      engine.setUseWebGpu(info.isAvailable);
       setRamStats(engine.getRamStats());
     });
   }, [webGpuEngine, engine]);
@@ -152,8 +153,8 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     return () => clearInterval(timer);
   }, [engine, webGpuEngine]);
 
-  // On-demand Model Loading & Download States (eliminates lag and unnecessary downloads)
-  const [backendMode, setBackendMode] = useState<'webllm' | 'in-ram-typedarray'>('webllm');
+  // In-RAM Streaming Neural Engine (Defaults to In-RAM with WebGPU acceleration if available)
+  const [backendMode, setBackendMode] = useState<'webllm' | 'in-ram-typedarray'>('in-ram-typedarray');
   const [selectedWebLlmModel, setSelectedWebLlmModel] = useState<string>('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
 
   const [isModelLoaded, setIsModelLoaded] = useState<boolean>(() => engine.isLoaded());

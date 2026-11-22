@@ -11,6 +11,7 @@ export interface LiveAiInferenceOptions {
   systemPrompt?: string;
   model?: string;
   temperature?: number;
+  preferInRam?: boolean;
   onChunk?: (chunk: string) => void;
   signal?: AbortSignal;
 }
@@ -21,9 +22,31 @@ export async function runLiveAiInference(options: LiveAiInferenceOptions): Promi
     systemPrompt = 'You are a helpful, expert AI assistant. Provide direct, accurate, and comprehensive responses.',
     model = 'deepseek-r1',
     temperature = 0.7,
+    preferInRam = false,
     onChunk,
     signal
   } = options;
+
+  // In-RAM Neural Streaming (Zero Network Latency, 100% In-Browser RAM, WebGPU Accelerated if available)
+  if (preferInRam) {
+    try {
+      const ramEngine = getInRamNeuralEngine();
+      ramEngine.setUseWebGpu(true);
+      let accumulated = '';
+      const result = await ramEngine.generateStreaming(prompt, {
+        onToken: (tok) => {
+          accumulated += (accumulated ? ' ' : '') + tok;
+          onChunk?.(accumulated);
+        },
+        abortSignal: signal
+      });
+      if (result.text) {
+        return result.text;
+      }
+    } catch (err) {
+      // Fall through to network tiers
+    }
+  }
 
   // Tier 1: Direct Pollinations POST Endpoint
   try {

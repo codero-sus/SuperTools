@@ -12,6 +12,7 @@ import { getTierByLevel, getUserRamBudgetMb } from '../utils/hardwareScaling';
 import { AiSpeedStopwatch } from '../utils/aiEngineManager';
 import { webLlmManager, SUPPORTED_WEBLLM_MODELS } from '../utils/webLlmEngine';
 import { getInRamNeuralEngine } from '../utils/inRamNeuralAi';
+import { getWebGpuAiEngine, WebGpuDeviceInfo } from '../utils/webGpuAiEngine';
 
 interface AiChatStudioProps {
   hardwareLevel?: number;
@@ -27,7 +28,7 @@ export interface ChatMessage {
 }
 
 type PersonaType = 'uncensored' | 'engineer' | 'executive' | 'copywriter' | 'scientist' | 'security' | 'coach';
-type ProviderType = 'free-uncensored' | 'webllm' | 'ollama' | 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'gemini';
+type ProviderType = 'in-ram-neural' | 'free-uncensored' | 'webllm' | 'ollama' | 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'gemini';
 
 interface UncensoredPromptItem {
   category: '🛡️ Pentest & Exploits' | '💻 Reverse Eng & ASM' | '🕶️ Dark & Cyberpunk' | '🧠 Unfiltered Debates';
@@ -165,12 +166,19 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
     return localStorage.getItem('supertools_uncensored_mode') === 'true';
   });
 
-  // Active persona and provider (defaults to Real Free Uncensored AI: DeepSeek-R1 / Mistral with zero key needed)
+  const webGpuEngine = useMemo(() => getWebGpuAiEngine(), []);
+  const [gpuInfo, setGpuInfo] = useState<WebGpuDeviceInfo>(() => webGpuEngine.getDeviceInfo());
+
+  useEffect(() => {
+    webGpuEngine.init().then(info => setGpuInfo(info));
+  }, [webGpuEngine]);
+
+  // Active persona and provider (defaults to In-RAM Streaming with WebGPU if available)
   const [persona, setPersona] = useState<PersonaType>('uncensored');
-  const [provider, setProvider] = useState<ProviderType>('free-uncensored');
+  const [provider, setProvider] = useState<ProviderType>('in-ram-neural');
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('supertools_chat_api_key') || '');
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434');
-  const [customModel, setCustomModel] = useState<string>('deepseek-r1');
+  const [customModel, setCustomModel] = useState<string>('In-RAM Attention (WebGPU / SIMD)');
   const [showPromptVault, setShowPromptVault] = useState<boolean>(true);
   const [selectedVaultCategory, setSelectedVaultCategory] = useState<string>('all');
   const [ollamaTestStatus, setOllamaTestStatus] = useState<string>('');
@@ -199,7 +207,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
       {
         id: 'msg-0',
         role: 'assistant',
-        content: `⚡ **SuperTools Real Uncensored AI Engine Active**\n\nI am running in **UNRESTRICTED mode** (DeepSeek-R1 / Mistral / Llama • Zero API key or signup required). I provide direct, unconstrained answers with full technical depth, cybersecurity exploit research, reverse engineering, and creative writing without moralizing lectures or boilerplate refusals.\n\nChoose an uncensored prompt from the vault below or ask anything!`,
+        content: `⚡ **In-RAM Streaming Neural AI Active (WebGPU Accelerated)**\n\nI run **100% in local browser RAM** with real-time auto-regressive token streaming, utilizing **WebGPU hardware acceleration** if supported by your browser and GPU (with CPU SIMD fallback). Zero external network latency, zero data logging, 100% ephemeral privacy.\n\nChoose an exploit or architecture prompt from the vault below or ask anything!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         latencyMs: 120,
         tokensCount: 42
@@ -255,7 +263,47 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
       : '';
     const effectiveSystemPrompt = PERSONAS[persona].systemPrompt + uncensoredDirective;
 
-    // 0. Free Real Live Uncensored AI Engine (DeepSeek-R1 / Mistral / Llama • Zero Key Required)
+    // 0. In-RAM Neural Streaming (100% In-Browser Memory • WebGPU Accelerated if Available)
+    if (provider === 'in-ram-neural') {
+      try {
+        const ramEngine = getInRamNeuralEngine();
+        ramEngine.setUseWebGpu(true);
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        let accumulated = '';
+        const result = await ramEngine.generateStreaming(text, {
+          enableCoT: isUncensoredMode,
+          abortSignal: controller.signal,
+          onToken: (tok) => {
+            accumulated += (accumulated ? ' ' : '') + tok;
+            setStreamingContent(accumulated);
+          }
+        });
+
+        const elapsed = sw.total();
+        setLastLatencySec(sw.formatted());
+        setStreamingContent('');
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: result.text,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            latencyMs: elapsed,
+            tokensCount: result.telemetry.generatedTokens
+          }
+        ]);
+        setIsGenerating(false);
+        return;
+      } catch (err: any) {
+        console.error('In-RAM neural inference error:', err);
+      }
+    }
+
+    // 1. Free Real Live Uncensored AI Engine (DeepSeek-R1 / Mistral / Llama • Zero Key Required)
     if (provider === 'free-uncensored') {
       try {
         const controller = new AbortController();
@@ -791,7 +839,8 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                 onChange={(e) => {
                   const p = e.target.value as ProviderType;
                   setProvider(p);
-                  if (p === 'free-uncensored') setCustomModel('deepseek-r1');
+                  if (p === 'in-ram-neural') setCustomModel('In-RAM Attention (WebGPU / SIMD)');
+                  else if (p === 'free-uncensored') setCustomModel('deepseek-r1');
                   else if (p === 'webllm') setCustomModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
                   else if (p === 'deepseek') setCustomModel('deepseek-chat');
                   else if (p === 'groq') setCustomModel('llama-3.3-70b-versatile');
@@ -802,8 +851,9 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                 }}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold focus:outline-none"
               >
-                <option value="free-uncensored">🔥 Free Real Live AI (DeepSeek-R1 / Mistral / Llama • Zero Key Required)</option>
-                <option value="webllm">🧠 Pure WebGPU In-Browser LLM (Real Weights: Qwen 2.5 / SmolLM2 / Llama 3.2 • 100% Client-Side)</option>
+                <option value="in-ram-neural">🧠 In-RAM Neural Streaming (WebGPU if Available • 100% Client-Side)</option>
+                <option value="free-uncensored">🔥 Free Real Live AI (DeepSeek-R1 / Mistral / Puter • Zero Key Required)</option>
+                <option value="webllm">⚡ WebGPU MLC LLM (Real Weights: Qwen 2.5 / SmolLM2 / Llama 3.2 • 100% Client-Side)</option>
                 <option value="ollama">🖥️ Local GPU Ollama / LM Studio (RTX 3050 8GB / localhost:11434)</option>
                 <option value="deepseek">🐋 DeepSeek-R1 / DeepSeek-V3 (Direct Browser BYOK)</option>
                 <option value="groq">⚡ Groq Lightning LPU (300+ tok/s • Llama-3.3-70B)</option>
@@ -826,7 +876,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
 
             <div>
               <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                {provider === 'ollama' ? 'Local GPU Bridge URL' : (provider === 'free-uncensored' || provider === 'webllm') ? 'Inference Backend' : 'API Key (Browser Memory Only)'}
+                {provider === 'ollama' ? 'Local GPU Bridge URL' : (provider === 'in-ram-neural' || provider === 'free-uncensored' || provider === 'webllm') ? 'Inference Backend' : 'API Key (Browser Memory Only)'}
               </label>
               {provider === 'ollama' ? (
                 <input
@@ -836,6 +886,11 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
                   placeholder="http://localhost:11434"
                   className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
                 />
+              ) : provider === 'in-ram-neural' ? (
+                <div className="px-3 py-1.5 rounded-lg bg-slate-950 border border-indigo-800/60 text-indigo-300 font-mono text-xs flex items-center justify-between">
+                  <span>{gpuInfo.isAvailable ? `✓ WebGPU Active (${gpuInfo.adapterName.slice(0, 16)})` : '✓ CPU SIMD Float32Array'}</span>
+                  <span className="text-[10px] text-indigo-400 font-bold">100% IN-RAM</span>
+                </div>
               ) : provider === 'free-uncensored' ? (
                 <div className="px-3 py-1.5 rounded-lg bg-slate-950 border border-emerald-800/60 text-emerald-300 font-mono text-xs flex items-center justify-between">
                   <span>✓ 100% Free Live Inference</span>
@@ -982,7 +1037,7 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-bold text-slate-300">Active: {PERSONAS[persona].title}</span>
             <span className="text-[10px] font-mono text-slate-500">
-              ({provider === 'free-uncensored' ? 'Free Real Live AI' : provider === 'webllm' ? 'WebGPU In-Browser LLM' : provider.toUpperCase()})
+              ({provider === 'in-ram-neural' ? (gpuInfo.isAvailable ? 'In-RAM WebGPU Active' : 'In-RAM SIMD Cores') : provider === 'free-uncensored' ? 'Free Real Live AI' : provider === 'webllm' ? 'WebGPU In-Browser LLM' : provider.toUpperCase()})
             </span>
           </div>
 

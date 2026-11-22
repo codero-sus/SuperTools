@@ -1072,6 +1072,11 @@ export function executeOptimizedTask(input: string): ExecutionContext {
     const enableCoT = options.enableCoT ?? false;
     const enableToolCalling = options.enableToolCalling ?? true;
 
+    // Ensure In-RAM model memory buffers are allocated (auto-loads in RAM with WebGPU if available)
+    if (!this.isModelLoaded) {
+      await this.loadModelAsync();
+    }
+
     const startTime = performance.now();
     const tokenIds = this.tokenize(prompt);
     const promptLen = tokenIds.length;
