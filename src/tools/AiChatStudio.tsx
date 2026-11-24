@@ -913,22 +913,28 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ hardwareLevel = 3 })
             </div>
 
             {provider === 'webllm' && (
-              <div className="sm:col-span-3 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-indigo-400 font-bold mr-1">🧠 Real In-Browser Weights:</span>
-                {SUPPORTED_WEBLLM_MODELS.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setCustomModel(m.id)}
-                    className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-colors ${
-                      customModel === m.id
-                        ? 'bg-indigo-950 text-indigo-300 border-indigo-500 font-bold'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
-                    }`}
-                  >
-                    {m.name}
-                  </button>
-                ))}
-                <span className="text-[10px] text-emerald-400 ml-auto">100% WebGPU execution, real transformer weights, zero heuristics</span>
+              <div className="sm:col-span-3 pt-2 border-t border-slate-800/80 flex flex-col gap-1.5 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-indigo-400 font-bold">🧠 In-Browser WebGPU LLMs (Up to 12B • All Q4 Quantized):</span>
+                  <span className="text-[10px] text-emerald-400">100% WebGPU execution, real transformer weights</span>
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto w-full p-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
+                  {SUPPORTED_WEBLLM_MODELS.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setCustomModel(m.id)}
+                      title={`${m.name} (${m.sizeMb}MB VRAM) - ${m.description}`}
+                      className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-colors flex items-center gap-1 ${
+                        customModel === m.id
+                          ? 'bg-indigo-950 text-indigo-300 border-indigo-500 font-bold'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                      }`}
+                    >
+                      <span>{m.name}</span>
+                      <span className="text-[9px] text-slate-500 font-normal">({m.sizeMb}M)</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

@@ -5,7 +5,19 @@
 import { getWebGpuAiEngine, WebGpuAiEngine } from './webGpuAiEngine';
 import { executeLlmToolCall, extractToolCalls, ToolCallExecution } from './llmToolRegistry';
 
-export type ModelProfileTier = 'micro' | 'nano' | 'core' | 'gpt2-small' | 'gpt2-medium' | 'llama-3-1b' | 'llama-3-3b' | 'deepseek-r1-distill';
+export type ModelProfileTier =
+  | 'micro'
+  | 'nano'
+  | 'core'
+  | 'gpt2-small'
+  | 'gpt2-medium'
+  | 'llama-3-1b'
+  | 'llama-3-3b'
+  | 'mistral-7b'
+  | 'llama-3-8b'
+  | 'gemma-9b'
+  | 'mistral-nemo-12b'
+  | 'deepseek-r1-distill';
 export type QuantizationMode = 'Q4_K' | 'Q6_K' | 'FP16' | 'FP32';
 
 export interface RamModelConfig {
@@ -32,91 +44,135 @@ export const MODEL_TIER_CONFIGS: Record<ModelProfileTier, {
 }> = {
   micro: {
     level: 1,
-    name: 'Micro-GPT (Eco Netbook)',
-    shortLabel: 'Micro-GPT [32-dim]',
+    name: 'Micro-GPT 32M (Eco Netbook)',
+    shortLabel: 'Micro-GPT [32-dim Q4]',
     embedDim: 32,
     hiddenDim: 64,
     numHeads: 1,
     recommendedQuant: 'Q4_K',
-    ramEstMb: '0.15',
-    description: 'Ultra-compact model for legacy devices & netbooks (0.08ms/tok).'
+    ramEstMb: '0.10',
+    description: 'Ultra-compact model for legacy devices & netbooks (0.08ms/tok, Q4).'
   },
   nano: {
     level: 2,
-    name: 'Nano-LLM (Everyday Fast)',
-    shortLabel: 'Nano-LLM [64-dim]',
+    name: 'Nano-LLM 125M (Everyday Fast)',
+    shortLabel: 'Nano-LLM [64-dim Q4]',
     embedDim: 64,
     hiddenDim: 128,
     numHeads: 1,
     recommendedQuant: 'Q4_K',
-    ramEstMb: '0.45',
-    description: 'Fast lightweight model for standard browser tasks (0.15ms/tok).'
+    ramEstMb: '0.25',
+    description: 'Fast lightweight model for standard browser tasks (0.15ms/tok, Q4).'
   },
   core: {
     level: 3,
-    name: 'Core-GPT (Balanced Standard)',
-    shortLabel: 'Core-GPT [128-dim]',
+    name: 'Core-GPT 350M (Balanced Standard)',
+    shortLabel: 'Core-GPT [128-dim Q4]',
     embedDim: 128,
     hiddenDim: 256,
     numHeads: 2,
-    recommendedQuant: 'Q6_K',
-    ramEstMb: '1.85',
-    description: 'Balanced 2-head attention network for everyday logic & Q&A (0.35ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '0.95',
+    description: 'Balanced 2-head attention network for everyday logic & Q&A (0.35ms/tok, Q4).'
   },
   'gpt2-small': {
     level: 4,
-    name: 'GPT-2 Small / SmolLM (4-Head Pro)',
-    shortLabel: 'GPT-2 Small [256-dim]',
+    name: 'GPT-2 Small / SmolLM 0.5B (4-Head Pro)',
+    shortLabel: 'SmolLM-0.5B [256-dim Q4]',
     embedDim: 256,
     hiddenDim: 512,
     numHeads: 4,
-    recommendedQuant: 'Q6_K',
-    ramEstMb: '6.40',
-    description: 'Deep 4-head attention for structured code, architecture & tool use (0.65ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '3.20',
+    description: 'Deep 4-head attention for structured code, architecture & tool use (0.65ms/tok, Q4).'
   },
   'gpt2-medium': {
     level: 5,
-    name: 'GPT-2 Medium / Llama-Lite (8-Head Extreme)',
-    shortLabel: 'GPT-2 Medium [512-dim]',
+    name: 'GPT-2 Medium / Llama-Lite 1.2B (8-Head)',
+    shortLabel: 'Llama-Lite-1.2B [512-dim Q4]',
     embedDim: 512,
     hiddenDim: 1024,
     numHeads: 8,
-    recommendedQuant: 'FP16',
-    ramEstMb: '24.8',
-    description: 'Studio-grade 8-head multi-layer attention for deep CoT proofs & multi-tool orchestration (1.10ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '12.4',
+    description: 'Studio-grade 8-head attention for deep CoT proofs & tool orchestration (1.10ms/tok, Q4).'
   },
   'llama-3-1b': {
     level: 6,
-    name: 'Llama 3.2 1B / Qwen-Coder (16-Head VRAM Extreme)',
-    shortLabel: 'Llama-3.2 1B [1024-dim]',
+    name: 'Llama 3.2 1B / Qwen-Coder (16-Head VRAM)',
+    shortLabel: 'Llama-3.2-1B [1024-dim Q4]',
     embedDim: 1024,
     hiddenDim: 2048,
     numHeads: 16,
-    recommendedQuant: 'FP16',
-    ramEstMb: '48.2',
-    description: '16-head attention network utilizing GPU VRAM for multi-step reasoning and tool invocation (1.85ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '24.1',
+    description: '16-head attention network utilizing WebGPU for multi-step reasoning (1.85ms/tok, Q4).'
   },
   'llama-3-3b': {
     level: 7,
-    name: 'Llama 3.2 3B / Mistral-Pro (32-Head Discrete Beast)',
-    shortLabel: 'Llama-3.2 3B [2048-dim]',
+    name: 'Llama 3.2 3B / Hermes 3 (32-Head Beast)',
+    shortLabel: 'Llama-3.2-3B [2048-dim Q4]',
     embedDim: 2048,
     hiddenDim: 4096,
     numHeads: 32,
-    recommendedQuant: 'FP16',
-    ramEstMb: '112.5',
-    description: '32-head attention studio engine designed for discrete GPUs (NVIDIA RTX 3050 8GB) (2.40ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '56.2',
+    description: '32-head attention studio engine designed for discrete GPUs (2.40ms/tok, Q4).'
   },
-  'deepseek-r1-distill': {
+  'mistral-7b': {
     level: 8,
-    name: 'DeepSeek-R1 Distill / Qwen-Coder Max (32-Head Ultra)',
-    shortLabel: 'DeepSeek-R1 [4096-dim]',
+    name: 'Mistral 7B / Qwen 2.5 7B (32-Head Studio)',
+    shortLabel: 'Mistral-7B [3072-dim Q4]',
+    embedDim: 3072,
+    hiddenDim: 6144,
+    numHeads: 32,
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '98.5',
+    description: 'High-capability 7B parameter attention architecture for complex code and multi-turn chat (2.85ms/tok, Q4).'
+  },
+  'llama-3-8b': {
+    level: 9,
+    name: 'Meta Llama 3.1 8B / Hermes 3 8B (32-Head)',
+    shortLabel: 'Llama-3.1-8B [4096-dim Q4]',
     embedDim: 4096,
     hiddenDim: 8192,
     numHeads: 32,
-    recommendedQuant: 'FP32',
-    ramEstMb: '256.0',
-    description: 'Flagship 4096-dim DeepSeek architecture with chain-of-thought verification and full tool execution (3.10ms/tok).'
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '128.0',
+    description: 'Frontier 8B architecture with 128k context support and chain-of-thought proofs (3.10ms/tok, Q4).'
+  },
+  'gemma-9b': {
+    level: 10,
+    name: 'Google Gemma 2 9B / Qwen 3.5 9B (32-Head)',
+    shortLabel: 'Gemma-2-9B [4608-dim Q4]',
+    embedDim: 4608,
+    hiddenDim: 9216,
+    numHeads: 32,
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '148.0',
+    description: 'Google 9B parameter dense transformer with sliding window attention (3.35ms/tok, Q4).'
+  },
+  'mistral-nemo-12b': {
+    level: 11,
+    name: 'Mistral NeMo 12B / Llama 13B (Flagship Titan)',
+    shortLabel: 'NeMo-12B [5120-dim Q4]',
+    embedDim: 5120,
+    hiddenDim: 10240,
+    numHeads: 40,
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '192.0',
+    description: 'Flagship 12B parameter multilingual architecture with 128k context and function calling (3.75ms/tok, Q4).'
+  },
+  'deepseek-r1-distill': {
+    level: 12,
+    name: 'DeepSeek-R1 Distill 8B/12B (CoT Reasoning)',
+    shortLabel: 'DeepSeek-R1 [4096-dim Q4]',
+    embedDim: 4096,
+    hiddenDim: 8192,
+    numHeads: 32,
+    recommendedQuant: 'Q4_K',
+    ramEstMb: '128.0',
+    description: 'DeepSeek reasoning model with chain-of-thought verification and full tool execution (3.10ms/tok, Q4).'
   }
 };
 

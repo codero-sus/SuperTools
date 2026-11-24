@@ -56,7 +56,7 @@ const TRAINING_PRESETS = [
   }
 ];
 
-// Stepped tiers for the vertical slider (Level 1 to 8: Micro-GPT to DeepSeek-R1 Extreme)
+// Stepped tiers for the vertical slider (Level 1 to 12: Micro-GPT to NeMo-12B Flagship)
 const VERTICAL_SLIDER_TIERS: ModelProfileTier[] = [
   'micro',
   'nano',
@@ -65,6 +65,10 @@ const VERTICAL_SLIDER_TIERS: ModelProfileTier[] = [
   'gpt2-medium',
   'llama-3-1b',
   'llama-3-3b',
+  'mistral-7b',
+  'llama-3-8b',
+  'gemma-9b',
+  'mistral-nemo-12b',
   'deepseek-r1-distill'
 ];
 
@@ -104,12 +108,8 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
     return 'gpt2-medium';
   });
 
-  // Quantization mode (Q4_K vs Q6_K vs FP16 vs FP32)
-  const [quantMode, setQuantMode] = useState<QuantizationMode>(() => {
-    if (hardwareLevel <= 3) return 'Q4_K';
-    if (hardwareLevel <= 7) return 'Q6_K';
-    return 'FP16';
-  });
+  // Quantization mode (defaults to Q4_K for all models up to 12B)
+  const [quantMode, setQuantMode] = useState<QuantizationMode>('Q4_K');
 
   // Vector RAG memory state
   const [memories, setMemories] = useState<MemoryBankItem[]>(() => engine.getMemoryBank());
@@ -691,7 +691,14 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                             <span className={`text-[11px] font-black ${isSelected ? 'text-indigo-400' : 'text-slate-300'}`}>
                               {m.name}
                             </span>
-                            <span className="text-[10px] font-mono text-slate-400">{m.sizeMb}MB</span>
+                            <div className="flex items-center gap-1.5">
+                              {m.paramSize && (
+                                <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700">
+                                  {m.paramSize}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-slate-400">{m.sizeMb}MB</span>
+                            </div>
                           </div>
                           <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{m.description}</p>
                         </div>
@@ -715,7 +722,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
                       <input
                         type="range"
                         min="0"
-                        max="7"
+                        max={VERTICAL_SLIDER_TIERS.length - 1}
                         step="1"
                         value={currentSliderIndex}
                         onChange={handleVerticalSliderChange}
@@ -728,7 +735,7 @@ export const InRamMiniAiStudio: React.FC<InRamMiniAiStudioProps> = ({ hardwareLe
 
                     {/* Vertical Stepped Ticks & Level Cards */}
                     <div className="flex-1 flex flex-col justify-between space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
-                      {[7, 6, 5, 4, 3, 2, 1, 0].map((idx) => {
+                      {Array.from({ length: VERTICAL_SLIDER_TIERS.length }, (_, i) => VERTICAL_SLIDER_TIERS.length - 1 - i).map((idx) => {
                         const tierKey = VERTICAL_SLIDER_TIERS[idx];
                         const t = MODEL_TIER_CONFIGS[tierKey];
                         const isSelected = selectedTier === tierKey;
